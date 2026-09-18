@@ -53,6 +53,9 @@
 
     <!-- Backup & Settings -->
     <string name="importing_backup_title">Імпорт даних Brunq...</string>
+    <string name="import_confirm_title">Імпорт бекапу Brunq</string>
+    <string name="import_confirm_message">Увага! Імпорт замінить поточну колекцію рослин та історію догляду даними з файлу бекапу. Продовжити?</string>
+    <string name="btn_import">Імпортувати</string>
     <string name="import_success">Успішно імпортовано %1$d рослин та %2$d кімнат!</string>
     <string name="import_error">Помилка читання бекапу: %1$s</string>
     <string name="menu_import_backup">Імпорт бекапу Brunq</string>

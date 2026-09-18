@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.plantshelf.app.R;
 import com.plantshelf.app.data.entity.PlantEntity;
@@ -150,10 +151,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openFilePickerForImport() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        filePickerLauncher.launch(intent);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.import_confirm_title)
+                .setMessage(R.string.import_confirm_message)
+                .setPositiveButton(R.string.btn_import, (dialog, which) -> {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("*/*");
+                    filePickerLauncher.launch(intent);
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
     }
 
     private void importBackupFromUri(Uri uri) {

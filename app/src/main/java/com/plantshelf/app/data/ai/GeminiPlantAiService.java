@@ -31,6 +31,8 @@ public class GeminiPlantAiService {
     private static final String TAG = "GeminiPlantAiService";
     private static final String PREFS_NAME = "plantshelf_ai_prefs";
     private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
+    public static final String KEY_GEMINI_MODEL = "gemini_model";
+    public static final String DEFAULT_MODEL = "gemini-2.5-flash";
 
     public interface AiAnalysisCallback {
         void onSuccess(AiPlantAnalysisResult result);
@@ -42,9 +44,21 @@ public class GeminiPlantAiService {
         return prefs.getString(KEY_GEMINI_API_KEY, "");
     }
 
-    public static void saveApiKey(Context context, String apiKey) {
+    public static String getSavedModel(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey != null ? apiKey.trim() : "").apply();
+        return prefs.getString(KEY_GEMINI_MODEL, DEFAULT_MODEL);
+    }
+
+    public static void saveApiKey(Context context, String apiKey) {
+        saveAiSettings(context, apiKey, getSavedModel(context));
+    }
+
+    public static void saveAiSettings(Context context, String apiKey, String model) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString(KEY_GEMINI_API_KEY, apiKey != null ? apiKey.trim() : "")
+                .putString(KEY_GEMINI_MODEL, model != null && !model.trim().isEmpty() ? model.trim() : DEFAULT_MODEL)
+                .apply();
     }
 
     /**
@@ -95,7 +109,7 @@ public class GeminiPlantAiService {
                 contentsArray.add(contentObj);
                 payload.add("contents", contentsArray);
 
-                sendGeminiRequest(apiKey, payload, callback);
+                sendGeminiRequest(context, apiKey, payload, callback);
             } catch (Exception e) {
                 Log.e(TAG, "Error in identifyPlantByPhoto", e);
                 callback.onError(e);
@@ -137,7 +151,7 @@ public class GeminiPlantAiService {
                 contentsArray.add(contentObj);
                 payload.add("contents", contentsArray);
 
-                sendGeminiRequest(apiKey, payload, callback);
+                sendGeminiRequest(context, apiKey, payload, callback);
             } catch (Exception e) {
                 Log.e(TAG, "Error in generatePlantByName", e);
                 callback.onError(e);
@@ -163,14 +177,16 @@ public class GeminiPlantAiService {
                 + "}";
     }
 
-    private static void sendGeminiRequest(String apiKey, JsonObject payload, AiAnalysisCallback callback) {
+    private static void sendGeminiRequest(Context context, String apiKey, JsonObject payload, AiAnalysisCallback callback) {
         HttpURLConnection conn = null;
         try {
-            String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+            String model = getSavedModel(context);
+            String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
             URL url = new URL(endpoint);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setRequestProperty("x-goog-api-key", apiKey);
             conn.setDoOutput(true);
             conn.setConnectTimeout(30000);
             conn.setReadTimeout(30000);
@@ -189,7 +205,11 @@ public class GeminiPlantAiService {
                 response.append(line);
             }
 
-            if (code != 200) {
+            if (code == 404) {
+                throw new RuntimeException("Модель '" + model + "' недоступна (HTTP 404). Оберіть іншу модель у налаштуваннях AI (наприклад, gemini-2.5-flash).");
+            } else if (code == 400 || code == 403) {
+                throw new RuntimeException("Помилка авторизації Gemini (HTTP " + code + "): перевірте свій API-ключ або вибрану модель.");
+            } else if (code != 200) {
                 throw new RuntimeException("Помилка сервера Gemini (" + code + "): " + response.toString());
             }
 

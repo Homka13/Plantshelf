@@ -4,10 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
-
-import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.plantshelf.app.R;
@@ -20,19 +19,24 @@ public class ApiKeyDialog {
     }
 
     public static void show(Context context, OnApiKeySavedListener listener) {
-        EditText input = new EditText(context);
-        input.setHint(R.string.dialog_api_key_hint);
-        input.setText(GeminiPlantAiService.getSavedApiKey(context));
-        input.setPadding(48, 24, 48, 24);
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_api_settings, null);
+        EditText etApiKey = view.findViewById(R.id.etApiKey);
+        EditText etModel = view.findViewById(R.id.etModel);
+
+        etApiKey.setText(GeminiPlantAiService.getSavedApiKey(context));
+        etModel.setText(GeminiPlantAiService.getSavedModel(context));
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.dialog_api_key_title)
-                .setMessage(R.string.dialog_api_key_desc)
-                .setView(input)
+                .setView(view)
                 .setPositiveButton(R.string.btn_save, (dialog, which) -> {
-                    String key = input.getText().toString().trim();
-                    GeminiPlantAiService.saveApiKey(context, key);
-                    Toast.makeText(context, "Ключ збережено!", Toast.LENGTH_SHORT).show();
+                    String key = etApiKey.getText().toString().trim();
+                    String model = etModel.getText().toString().trim();
+                    if (model.isEmpty()) {
+                        model = GeminiPlantAiService.DEFAULT_MODEL;
+                    }
+                    GeminiPlantAiService.saveAiSettings(context, key, model);
+                    Toast.makeText(context, "Налаштування AI збережено!", Toast.LENGTH_SHORT).show();
                     if (listener != null) {
                         listener.onKeySaved(key);
                     }

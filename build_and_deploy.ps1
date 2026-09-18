@@ -8,7 +8,11 @@ Write-Host ""
 
 # 1. Пошук JDK
 if (-not $env:JAVA_HOME) {
-    if (Test-Path "C:\Program Files\Android\Android Studio\jbr") {
+    $gammaJdk = "$env:LOCALAPPDATA\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\java-runtime-gamma\windows-x64\java-runtime-gamma"
+    if (Test-Path $gammaJdk) {
+        $env:JAVA_HOME = $gammaJdk
+        Write-Host "[OK] Знайдено JDK 17 LTS: $env:JAVA_HOME" -ForegroundColor Cyan
+    } elseif (Test-Path "C:\Program Files\Android\Android Studio\jbr") {
         $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
         Write-Host "[OK] Знайдено JDK Android Studio: $env:JAVA_HOME" -ForegroundColor Cyan
     } else {

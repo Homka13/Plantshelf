@@ -2,9 +2,12 @@ package com.plantshelf.app.data.database;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.plantshelf.app.data.dao.CareLogDao;
 import com.plantshelf.app.data.dao.CategoryDao;
@@ -18,12 +21,21 @@ import com.plantshelf.app.data.entity.PlantEntity;
 @Database(
         entities = {CategoryEntity.class, PlantEntity.class, CareLogEntity.class, PhotoEntity.class},
         version = 2,
-        exportSchema = false
+        exportSchema = true
 )
 public abstract class PlantshelfDatabase extends RoomDatabase {
 
     private static final String DATABASE_NAME = "plantshelf.db";
     private static volatile PlantshelfDatabase INSTANCE;
+
+    public static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE care_logs ADD COLUMN treatmentDrug TEXT");
+            database.execSQL("ALTER TABLE care_logs ADD COLUMN notes TEXT");
+            database.execSQL("ALTER TABLE plants ADD COLUMN quarantineReason TEXT");
+        }
+    };
 
     public abstract CategoryDao categoryDao();
     public abstract PlantDao plantDao();
@@ -38,7 +50,7 @@ public abstract class PlantshelfDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             PlantshelfDatabase.class,
                             DATABASE_NAME
-                    ).fallbackToDestructiveMigration().build();
+                    ).addMigrations(MIGRATION_1_2).build();
                 }
             }
         }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Exclude Gemini API key preferences from cloud backup -->
+        <exclude domain="sharedpref" path="plantshelf_ai_prefs.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <!-- Exclude Gemini API key preferences from device-to-device transfer -->
+        <exclude domain="sharedpref" path="plantshelf_ai_prefs.xml" />
+    </device-transfer>
+</data-extraction-rules>

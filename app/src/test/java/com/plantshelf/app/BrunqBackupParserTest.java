@@ -52,4 +52,44 @@ public class BrunqBackupParserTest {
         int daysLeft = plant.getDaysUntilWatering();
         assertTrue("Days left should be positive when watered today", daysLeft >= 6 && daysLeft <= 7);
     }
+
+    @Test
+    public void testSanitizeId() {
+        // Path traversal attempts must be stripped of dangerous characters
+        String sanitized = com.plantshelf.app.data.importer.BrunqBackupImporter.sanitizeId("../../secret/file", "ph");
+        assertEquals("______secret_file", sanitized);
+        assertTrue(!sanitized.contains("/") && !sanitized.contains("."));
+
+        // Null or empty id must generate a UUID-based ID
+        String fallback = com.plantshelf.app.data.importer.BrunqBackupImporter.sanitizeId(null, "p");
+        assertNotNull(fallback);
+        assertTrue(fallback.startsWith("p_"));
+        assertTrue(fallback.length() > 10);
+    }
+
+    @Test
+    public void testStreamingParseStream() throws Exception {
+        String json = "{"
+                + "\"categories\":[{\"name\":\"Спальня\"}],"
+                + "\"plants\":[{\"name\":\"Фікус\",\"careLog\":[{\"kind\":\"water\"}]}]"
+                + "}";
+
+        try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+             com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.InputStreamReader(bais, java.nio.charset.StandardCharsets.UTF_8))) {
+            com.plantshelf.app.data.importer.BrunqBackupImporter.ParsedData data =
+                    com.plantshelf.app.data.importer.BrunqBackupImporter.parseStream(reader, null, null);
+
+            assertEquals(1, data.categories.size());
+            assertEquals("Спальня", data.categories.get(0).getName());
+            assertTrue(data.categories.get(0).getId().startsWith("c_"));
+
+            assertEquals(1, data.plants.size());
+            assertEquals("Фікус", data.plants.get(0).getName());
+            assertTrue(data.plants.get(0).getId().startsWith("p_"));
+
+            assertEquals(1, data.careLogs.size());
+            assertEquals("water", data.careLogs.get(0).getKind());
+            assertTrue(data.careLogs.get(0).getId().startsWith("log_"));
+        }
+    }
 }
