@@ -1,0 +1,235 @@
+package com.plantshelf.app.data.ai;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
+import android.util.Log;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Pure Java service communicating directly with Google Gemini 1.5/2.0 Flash API
+ * to identify houseplants by photo and extract structured care requirements.
+ */
+public class GeminiPlantAiService {
+
+    private static final String TAG = "GeminiPlantAiService";
+    private static final String PREFS_NAME = "plantshelf_ai_prefs";
+    private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
+
+    public interface AiAnalysisCallback {
+        void onSuccess(AiPlantAnalysisResult result);
+        void onError(Exception e);
+    }
+
+    public static String getSavedApiKey(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getString(KEY_GEMINI_API_KEY, "");
+    }
+
+    public static void saveApiKey(Context context, String apiKey) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey != null ? apiKey.trim() : "").apply();
+    }
+
+    public static void identifyPlantByPhoto(
+            Context context,
+            File imageFile,
+            AiAnalysisCallback callback
+    ) {
+        String apiKey = getSavedApiKey(context);
+        if (apiKey.isEmpty()) {
+            callback.onError(new IllegalStateException("API ключ не встановлено"));
+            return;
+        }
+
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                // 1. Resize & encode image to Base64
+                String base64Image = prepareBase64Image(imageFile);
+                if (base64Image == null) {
+                    throw new IllegalArgumentException("Не вдалося завантажити фото для аналізу");
+                }
+
+                // 2. Build Gemini Vision payload
+                String promptText = "Ти експерт-ботанік з кімнатних рослин. "
+                        + "Визнач кімнатну рослину на цьому фото. "
+                        + "Поверни відповідь ВИКЛЮЧНО валідним JSON без додаткового тексту чи форматування у такій схемі:\n"
+                        + "{\n"
+                        + "  \"name\": \"Назва українською (наприклад, Фікус каучуконосний)\",\n"
+                        + "  \"latin\": \"Латинська ботанічна назва\",\n"
+                        + "  \"variety\": \"Сорт або різновид якщо видно\",\n"
+                        + "  \"difficulty\": \"легка / середня / складна\",\n"
+                        + "  \"light\": \"яскраве розсіяне / півтінь / пряме сонце\",\n"
+                        + "  \"lux\": 12000,\n"
+                        + "  \"intervalDaysSummer\": 7,\n"
+                        + "  \"intervalDaysWinter\": 14,\n"
+                        + "  \"fertIntervalDays\": 14,\n"
+                        + "  \"humidity\": \"середня / висока\",\n"
+                        + "  \"soil\": \"рекомендований склад ґрунту\",\n"
+                        + "  \"warning\": \"попередження якщо отруйна для тварин або чутлива до протягів\",\n"
+                        + "  \"notes\": \"корисні поради щодо догляду\"\n"
+                        + "}";
+
+                JsonObject payload = new JsonObject();
+                JsonArray contentsArray = new JsonArray();
+                JsonObject contentObj = new JsonObject();
+                JsonArray partsArray = new JsonArray();
+
+                // Text part
+                JsonObject textPart = new JsonObject();
+                textPart.addProperty("text", promptText);
+                partsArray.add(textPart);
+
+                // Image part
+                JsonObject imagePart = new JsonObject();
+                JsonObject inlineData = new JsonObject();
+                inlineData.addProperty("mime_type", "image/jpeg");
+                inlineData.addProperty("data", base64Image);
+                imagePart.add("inline_data", inlineData);
+                partsArray.add(imagePart);
+
+                contentObj.add("parts", partsArray);
+                contentsArray.add(contentObj);
+                payload.add("contents", contentsArray);
+
+                // 3. Send HTTP Request
+                String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+                URL url = new URL(endpoint);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(30000);
+                conn.setReadTimeout(30000);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+
+                int code = conn.getResponseCode();
+                InputStream stream = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+
+                if (code != 200) {
+                    throw new RuntimeException("Помилка сервера Gemini (" + code + "): " + response.toString());
+                }
+
+                // 4. Parse Gemini Response JSON
+                JsonObject geminiResp = JsonParser.parseString(response.toString()).getAsJsonObject();
+                String rawText = extractTextFromGeminiResponse(geminiResp);
+
+                // Extract JSON object from raw response text
+                String cleanJson = cleanJsonContent(rawText);
+                AiPlantAnalysisResult result = new Gson().fromJson(cleanJson, AiPlantAnalysisResult.class);
+
+                callback.onSuccess(result);
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error in identifyPlantByPhoto", e);
+                callback.onError(e);
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
+            }
+        }).start();
+    }
+
+    private static String prepareBase64Image(File file) {
+        if (file == null || !file.exists()) return null;
+        try {
+            // First decode bounds
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+
+            int width = options.outWidth;
+            int height = options.outHeight;
+            int maxDim = 1024;
+            int inSampleSize = 1;
+
+            while ((width / inSampleSize) > maxDim || (height / inSampleSize) > maxDim) {
+                inSampleSize *= 2;
+            }
+
+            options.inJustDecodeBounds = false;
+            options.inSampleSize = inSampleSize;
+
+            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+            if (bitmap == null) return null;
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+            byte[] bytes = baos.toByteArray();
+            bitmap.recycle();
+
+            return Base64.encodeToString(bytes, Base64.NO_WRAP);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to prepare image for AI", e);
+            return null;
+        }
+    }
+
+    private static String extractTextFromGeminiResponse(JsonObject root) {
+        if (root.has("candidates")) {
+            JsonArray candidates = root.getAsJsonArray("candidates");
+            if (candidates.size() > 0) {
+                JsonObject cand = candidates.get(0).getAsJsonObject();
+                if (cand.has("content")) {
+                    JsonObject content = cand.getAsJsonObject("content");
+                    if (content.has("parts")) {
+                        JsonArray parts = content.getAsJsonArray("parts");
+                        if (parts.size() > 0) {
+                            return parts.get(0).getAsJsonObject().get("text").getAsString();
+                        }
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("Gemini не повернув результату");
+    }
+
+    public static String cleanJsonContent(String raw) {
+        if (raw == null) return "{}";
+        String s = raw.trim();
+        if (s.startsWith("```json")) {
+            s = s.substring(7);
+        } else if (s.startsWith("```")) {
+            s = s.substring(3);
+        }
+        if (s.endsWith("```")) {
+            s = s.substring(0, s.length() - 3);
+        }
+        s = s.trim();
+        int firstBrace = s.indexOf("{");
+        int lastBrace = s.lastIndexOf("}");
+        if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+            s = s.substring(firstBrace, lastBrace + 1);
+        }
+        return s;
+    }
+}

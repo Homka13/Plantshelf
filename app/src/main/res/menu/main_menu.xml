@@ -3,10 +3,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_search"
+        android:icon="@drawable/ic_search"
+        android:title="@string/menu_search"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"
+        app:showAsAction="collapseActionView|ifRoom" />
+
+    <item
+        android:id="@+id/action_calendar"
+        android:icon="@drawable/ic_calendar"
+        android:title="@string/menu_calendar"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_light_meter"
         android:icon="@drawable/ic_light"
         android:title="@string/menu_light_meter"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_api_settings"
+        android:icon="@drawable/ic_key"
+        android:title="@string/menu_api_settings"
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_import_backup"

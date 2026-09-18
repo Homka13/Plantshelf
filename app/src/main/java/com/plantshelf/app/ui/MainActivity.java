@@ -171,15 +171,44 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        if (searchItem != null) {
+            androidx.appcompat.widget.SearchView searchView = (androidx.appcompat.widget.SearchView) searchItem.getActionView();
+            if (searchView != null) {
+                searchView.setQueryHint(getString(R.string.search_hint));
+                searchView.setOnQueryTextListener(new androidx.appcompat.widget.SearchView.OnQueryTextListener() {
+                    @Override
+                    public boolean onQueryTextSubmit(String query) {
+                        viewModel.setSearchQuery(query);
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onQueryTextChange(String newText) {
+                        viewModel.setSearchQuery(newText);
+                        return true;
+                    }
+                });
+            }
+        }
+
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_light_meter) {
+        if (id == R.id.action_calendar) {
+            Intent intent = new Intent(this, CareCalendarActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_light_meter) {
             Intent intent = new Intent(this, LightMeterActivity.class);
             startActivity(intent);
+            return true;
+        } else if (id == R.id.action_api_settings) {
+            com.plantshelf.app.ui.dialog.ApiKeyDialog.show(this, null);
             return true;
         } else if (id == R.id.action_import_backup) {
             openFilePickerForImport();

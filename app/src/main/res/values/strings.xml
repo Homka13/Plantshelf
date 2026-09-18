@@ -58,6 +58,31 @@
     <string name="menu_import_backup">Імпорт бекапу Brunq</string>
     <string name="menu_export_backup">Експорт бекапу</string>
     <string name="menu_light_meter">Люксметр</string>
+    <string name="menu_calendar">Календар догляду</string>
+    <string name="menu_search">Пошук</string>
+    <string name="menu_api_settings">Налаштування AI (Gemini)</string>
+
+    <!-- Calendar -->
+    <string name="title_calendar">Календар догляду</string>
+    <string name="calendar_no_tasks">На цей день запланованих дій немає</string>
+    <string name="calendar_task_water">Полив</string>
+    <string name="calendar_task_fert">Підживлення</string>
+    <string name="calendar_task_mist">Обприскування</string>
+    <string name="task_done">Виконано!</string>
+
+    <!-- Photo & AI -->
+    <string name="action_take_photo">Камера</string>
+    <string name="action_pick_gallery">Галерея</string>
+    <string name="action_ai_identify">Розпізнати через AI</string>
+    <string name="ai_identifying">AI аналізує рослину за фото...</string>
+    <string name="ai_success">Рослину визначено! Форму заповнено.</string>
+    <string name="ai_error">Помилка AI: %1$s</string>
+    <string name="dialog_api_key_title">Gemini API Ключ</string>
+    <string name="dialog_api_key_desc">Введіть безкоштовний ключ Google Gemini API для розпізнавання рослин за фото. Отримати ключ можна на aistudio.google.com</string>
+    <string name="dialog_api_key_hint">Вставте ваш API-ключ тут...</string>
+    <string name="btn_save">Зберегти</string>
+    <string name="btn_cancel">Скасувати</string>
+    <string name="no_api_key_set">Будь ласка, спочатку вкажіть Gemini API ключ у налаштуваннях!</string>
 
     <!-- Notifications -->
     <string name="notif_channel_name">Нагадування про полив</string>
