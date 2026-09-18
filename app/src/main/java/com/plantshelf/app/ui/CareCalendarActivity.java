@@ -219,11 +219,33 @@ public class CareCalendarActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.calendar_menu, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             finish();
             return true;
+        } else if (item.getItemId() == R.id.action_export_calendar) {
+            exportAllToIcs();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void exportAllToIcs() {
+        if (allPlants == null || allPlants.isEmpty()) {
+            Toast.makeText(this, R.string.no_plants_to_export, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            com.plantshelf.app.data.calendar.CalendarIntegrationHelper.exportAndShareIcs(this, allPlants);
+        } catch (Exception e) {
+            Toast.makeText(this, "Помилка експорту: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 }

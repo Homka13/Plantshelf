@@ -136,6 +136,13 @@ public class PlantDetailActivity extends AppCompatActivity {
             viewModel.recordMisting();
             Snackbar.make(binding.getRoot(), R.string.action_misted_success, Snackbar.LENGTH_SHORT).show();
         });
+
+        binding.btnAddToCalendar.setOnClickListener(v -> {
+            PlantEntity plant = viewModel.getPlant().getValue();
+            if (plant != null) {
+                com.plantshelf.app.data.calendar.CalendarIntegrationHelper.addPlantCareToSystemCalendar(this, plant, "water");
+            }
+        });
     }
 
     @Override

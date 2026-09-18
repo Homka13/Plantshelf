@@ -69,6 +69,11 @@
     <string name="calendar_task_fert">Підживлення</string>
     <string name="calendar_task_mist">Обприскування</string>
     <string name="task_done">Виконано!</string>
+    <string name="action_add_to_system_calendar">Додати в системний календар</string>
+    <string name="action_export_ics">Експорт розкладу (.ics)</string>
+    <string name="export_ics_title">Експорт у Google / Apple Календар</string>
+    <string name="export_ics_desc">Створити файл .ics з регулярними подіями для всіх рослин</string>
+    <string name="no_plants_to_export">Немає рослин для експорту</string>
 
     <!-- Photo & AI -->
     <string name="action_take_photo">Камера</string>
