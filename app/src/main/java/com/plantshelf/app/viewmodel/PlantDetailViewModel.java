@@ -68,4 +68,18 @@ public class PlantDetailViewModel extends AndroidViewModel {
             repository.recordMisting(id);
         }
     }
+
+    public void recordTreatment(String drug, String notes, boolean setQuarantine, int quarantineDays, String quarantineReason) {
+        String id = plantIdLiveData.getValue();
+        if (id != null) {
+            repository.recordTreatment(id, drug, notes, setQuarantine, quarantineDays, quarantineReason);
+        }
+    }
+
+    public void updateQuarantine(String until, String reason) {
+        String id = plantIdLiveData.getValue();
+        if (id != null) {
+            repository.updateQuarantine(id, until, reason);
+        }
+    }
 }

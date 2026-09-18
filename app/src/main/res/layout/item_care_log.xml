@@ -42,6 +42,16 @@
             android:textColor="?attr/colorOnSurfaceVariant"
             tools:text="07 вересня 2026, 14:30" />
 
+        <TextView
+            android:id="@+id/tvActionNotes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorSecondary"
+            android:visibility="gone"
+            tools:text="Оброблено від павутинного кліща по листу" />
+
     </LinearLayout>
 
 </LinearLayout>

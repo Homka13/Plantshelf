@@ -3,4 +3,6 @@
     <files-path name="photos" path="photos/" />
     <cache-path name="camera_photos" path="camera/" />
     <cache-path name="calendar_export" path="calendar/" />
+    <cache-path name="updates_cache" path="updates/" />
+    <external-cache-path name="updates_ext" path="updates/" />
 </paths>

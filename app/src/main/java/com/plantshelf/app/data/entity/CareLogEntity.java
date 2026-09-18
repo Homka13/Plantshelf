@@ -21,9 +21,11 @@ public class CareLogEntity {
     @NonNull
     private String plantId;
 
-    private String kind; // "water", "fert", "mist"
+    private String kind; // "water", "fert", "mist", "treatment"
     private String date; // "yyyy-MM-dd"
     private long timestamp;
+    private String treatmentDrug;
+    private String notes;
 
     public CareLogEntity(@NonNull String id, @NonNull String plantId, String kind, String date, long timestamp) {
         this.id = id;
@@ -73,5 +75,21 @@ public class CareLogEntity {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getTreatmentDrug() {
+        return treatmentDrug;
+    }
+
+    public void setTreatmentDrug(String treatmentDrug) {
+        this.treatmentDrug = treatmentDrug;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

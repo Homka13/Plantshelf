@@ -53,6 +53,10 @@ public class CareLogAdapter extends RecyclerView.Adapter<CareLogAdapter.LogViewH
         } else if ("mist".equalsIgnoreCase(kind)) {
             holder.binding.tvActionTitle.setText("Обприскування");
             holder.binding.ivActionIcon.setImageResource(R.drawable.ic_mist);
+        } else if ("treatment".equalsIgnoreCase(kind)) {
+            String drug = log.getTreatmentDrug();
+            holder.binding.tvActionTitle.setText("💊 " + (drug != null && !drug.isEmpty() ? drug : "Лікування / Обробка"));
+            holder.binding.ivActionIcon.setImageResource(R.drawable.ic_check);
         } else {
             holder.binding.tvActionTitle.setText(kind);
             holder.binding.ivActionIcon.setImageResource(R.drawable.ic_check);
@@ -63,6 +67,14 @@ public class CareLogAdapter extends RecyclerView.Adapter<CareLogAdapter.LogViewH
             holder.binding.tvActionDate.setText(sdf.format(new Date(log.getTimestamp())));
         } else {
             holder.binding.tvActionDate.setText(log.getDate());
+        }
+
+        String notes = log.getNotes();
+        if (notes != null && !notes.trim().isEmpty()) {
+            holder.binding.tvActionNotes.setText(notes);
+            holder.binding.tvActionNotes.setVisibility(android.view.View.VISIBLE);
+        } else {
+            holder.binding.tvActionNotes.setVisibility(android.view.View.GONE);
         }
     }
 

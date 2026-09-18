@@ -23,7 +23,9 @@ public class MainViewModel extends AndroidViewModel {
 
     private final MutableLiveData<String> selectedCategoryId = new MutableLiveData<>(null);
     private final MutableLiveData<String> searchQuery = new MutableLiveData<>("");
+    private final MutableLiveData<Boolean> quarantineFilterOnly = new MutableLiveData<>(false);
     private final MediatorLiveData<List<PlantEntity>> filteredPlants = new MediatorLiveData<>();
+    private final MediatorLiveData<Integer> quarantinedCount = new MediatorLiveData<>();
 
     public MainViewModel(@NonNull Application application) {
         super(application);
@@ -34,6 +36,19 @@ public class MainViewModel extends AndroidViewModel {
         filteredPlants.addSource(rawPlants, plants -> applyFilter());
         filteredPlants.addSource(selectedCategoryId, cat -> applyFilter());
         filteredPlants.addSource(searchQuery, query -> applyFilter());
+        filteredPlants.addSource(quarantineFilterOnly, q -> applyFilter());
+
+        quarantinedCount.addSource(rawPlants, plants -> {
+            if (plants == null) {
+                quarantinedCount.setValue(0);
+                return;
+            }
+            int count = 0;
+            for (PlantEntity p : plants) {
+                if (p.isQuarantined()) count++;
+            }
+            quarantinedCount.setValue(count);
+        });
     }
 
     private void applyFilter() {
@@ -48,9 +63,15 @@ public class MainViewModel extends AndroidViewModel {
         String trimmedQuery = query != null ? query.trim().toLowerCase() : "";
 
         List<PlantEntity> result = new ArrayList<>();
+        boolean quarantineOnly = Boolean.TRUE.equals(quarantineFilterOnly.getValue());
         for (PlantEntity plant : all) {
+            // Quarantine filter
+            if (quarantineOnly && !plant.isQuarantined()) {
+                continue;
+            }
+
             // Category filter
-            if (catId != null && !catId.isEmpty() && !catId.equals(plant.getCategoryId())) {
+            if (!quarantineOnly && catId != null && !catId.isEmpty() && !catId.equals(plant.getCategoryId())) {
                 continue;
             }
 
@@ -78,6 +99,22 @@ public class MainViewModel extends AndroidViewModel {
 
     public LiveData<List<PlantEntity>> getPlants() {
         return filteredPlants;
+    }
+
+    public LiveData<Integer> getQuarantinedCount() {
+        return quarantinedCount;
+    }
+
+    public LiveData<Boolean> getQuarantineFilterOnly() {
+        return quarantineFilterOnly;
+    }
+
+    public void setQuarantineFilter(boolean onlyQuarantine) {
+        quarantineFilterOnly.setValue(onlyQuarantine);
+    }
+
+    public boolean isQuarantineFilterActive() {
+        return Boolean.TRUE.equals(quarantineFilterOnly.getValue());
     }
 
     public void selectCategory(String categoryId) {

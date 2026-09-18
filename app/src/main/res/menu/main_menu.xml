@@ -49,4 +49,10 @@
         android:title="@string/menu_export_backup"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_check_updates"
+        android:icon="@drawable/ic_sync"
+        android:title="@string/menu_check_updates"
+        app:showAsAction="never" />
+
 </menu>

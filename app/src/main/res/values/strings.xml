@@ -95,4 +95,30 @@
     <string name="notif_title_care_needed">Час подбати про рослини 🌱</string>
     <string name="notif_body_single">Час полити %1$s!</string>
     <string name="notif_body_multiple">%1$d рослин очікують на полив сьогодні.</string>
+
+    <!-- Quarantine & Treatment -->
+    <string name="status_quarantine_chip">⚠️ Карантин (%1$d)</string>
+    <string name="action_treatment">Обробити</string>
+    <string name="action_treated_success">Обробку успішно збережено!</string>
+    <string name="dialog_treatment_title">💊 Обробка / Лікування</string>
+    <string name="label_treatment_drug">Препарат / засіб</string>
+    <string name="hint_treatment_drug">Наприклад: Актара, Фітоверм, Топаз...</string>
+    <string name="label_treatment_type">Тип обробки</string>
+    <string name="label_treatment_notes">Нотатки / дозування</string>
+    <string name="hint_treatment_notes">Наприклад: обприскування по листу, 1г/л</string>
+    <string name="checkbox_put_on_quarantine">Поставити на карантин (14 днів)</string>
+    <string name="quarantine_banner_title">⚠️ Рослина на карантині</string>
+    <string name="quarantine_banner_until">До: %1$s</string>
+    <string name="quarantine_reason">Причина: %1$s</string>
+    <string name="btn_remove_quarantine">Зняти з карантину</string>
+    <string name="btn_add_quarantine">Поставити на карантин</string>
+
+    <!-- Updater -->
+    <string name="menu_check_updates">Оновити додаток з GitHub</string>
+    <string name="update_checking">Перевірка оновлень на GitHub...</string>
+    <string name="update_already_latest">У вас встановлена найновіша версія (%1$s)! 🎉</string>
+    <string name="update_dialog_title">Доступна нова версія %1$s!</string>
+    <string name="update_dialog_btn_download">Завантажити та встановити</string>
+    <string name="update_downloading">Завантаження оновлення...</string>
+    <string name="update_download_failed">Помилка завантаження оновлення: %1$s</string>
 </resources>

@@ -53,4 +53,13 @@ public interface PlantDao {
 
     @Query("UPDATE plants SET lastMisted = :today WHERE id = :plantId")
     void updateMisted(String plantId, String today);
+
+    @Query("SELECT * FROM plants WHERE quarantineUntil IS NOT NULL AND quarantineUntil != '' ORDER BY name ASC")
+    LiveData<List<PlantEntity>> getQuarantinedPlants();
+
+    @Query("SELECT * FROM plants WHERE quarantineUntil IS NOT NULL AND quarantineUntil != '' ORDER BY name ASC")
+    List<PlantEntity> getQuarantinedPlantsSync();
+
+    @Query("UPDATE plants SET quarantineUntil = :until, quarantineFrom = :from, quarantineReason = :reason WHERE id = :plantId")
+    void updateQuarantine(String plantId, String from, String until, String reason);
 }

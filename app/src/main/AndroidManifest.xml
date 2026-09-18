@@ -9,6 +9,7 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".PlantshelfApp"
@@ -54,7 +55,7 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
-        <!-- FileProvider for Camera photos -->
+        <!-- FileProvider for Camera photos and APK updates -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -64,6 +65,24 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Desktop Care AppWidget -->
+        <receiver
+            android:name=".widget.PlantCareWidgetProvider"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.plantshelf.app.widget.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/plant_care_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".widget.PlantCareWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
 
     </application>
 

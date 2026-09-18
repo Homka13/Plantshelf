@@ -99,7 +99,11 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         statusBg.setCornerRadius(16);
 
         if (plant.isQuarantined()) {
-            holder.binding.tvWaterStatusBadge.setText(R.string.status_quarantine_badge);
+            String qText = holder.itemView.getContext().getString(R.string.status_quarantine_badge);
+            if (plant.getQuarantineReason() != null && !plant.getQuarantineReason().isEmpty()) {
+                qText += ": " + plant.getQuarantineReason();
+            }
+            holder.binding.tvWaterStatusBadge.setText(qText);
             statusBg.setColor(Color.parseColor("#EEDBFF"));
             holder.binding.tvWaterStatusBadge.setTextColor(Color.parseColor("#6A1B9A"));
         } else if (daysLeft < 0) {

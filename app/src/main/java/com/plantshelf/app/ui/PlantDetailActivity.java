@@ -2,6 +2,7 @@ package com.plantshelf.app.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -111,6 +112,20 @@ public class PlantDetailActivity extends AppCompatActivity {
             binding.tvReqNotes.setText("📝 Нотаток немає");
         }
 
+        // Quarantine
+        if (plant.isQuarantined()) {
+            binding.cardQuarantineBanner.setVisibility(View.VISIBLE);
+            String details = getString(R.string.quarantine_banner_until, plant.getQuarantineUntil());
+            if (plant.getQuarantineReason() != null && !plant.getQuarantineReason().isEmpty()) {
+                details += " • " + getString(R.string.quarantine_reason, plant.getQuarantineReason());
+            }
+            binding.tvQuarantineDetails.setText(details);
+            binding.btnToggleQuarantine.setText(R.string.btn_remove_quarantine);
+        } else {
+            binding.cardQuarantineBanner.setVisibility(View.GONE);
+            binding.btnToggleQuarantine.setText(R.string.btn_add_quarantine);
+        }
+
         // Photo
         if (plant.getPrimaryPhotoPath() != null && new File(plant.getPrimaryPhotoPath()).exists()) {
             Glide.with(this)
@@ -135,6 +150,34 @@ public class PlantDetailActivity extends AppCompatActivity {
         binding.btnActionMist.setOnClickListener(v -> {
             viewModel.recordMisting();
             Snackbar.make(binding.getRoot(), R.string.action_misted_success, Snackbar.LENGTH_SHORT).show();
+        });
+
+        binding.btnActionTreatment.setOnClickListener(v -> {
+            com.plantshelf.app.ui.dialog.TreatmentDialog.show(this, (drug, notes, putOnQuarantine) -> {
+                viewModel.recordTreatment(drug, notes, putOnQuarantine, 14, "Обробка: " + drug);
+                Snackbar.make(binding.getRoot(), R.string.action_treated_success, Snackbar.LENGTH_SHORT).show();
+            });
+        });
+
+        binding.btnRemoveQuarantine.setOnClickListener(v -> {
+            viewModel.updateQuarantine(null, null);
+            Snackbar.make(binding.getRoot(), "Рослину знято з карантину", Snackbar.LENGTH_SHORT).show();
+        });
+
+        binding.btnToggleQuarantine.setOnClickListener(v -> {
+            PlantEntity plant = viewModel.getPlant().getValue();
+            if (plant != null) {
+                if (plant.isQuarantined()) {
+                    viewModel.updateQuarantine(null, null);
+                    Snackbar.make(binding.getRoot(), "Рослину знято з карантину", Snackbar.LENGTH_SHORT).show();
+                } else {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    c.add(java.util.Calendar.DAY_OF_YEAR, 14);
+                    String until = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(c.getTime());
+                    viewModel.updateQuarantine(until, "Ізоляція / Профілактика");
+                    Snackbar.make(binding.getRoot(), "Рослину поміщено на карантин на 14 днів", Snackbar.LENGTH_SHORT).show();
+                }
+            }
         });
 
         binding.btnAddToCalendar.setOnClickListener(v -> {

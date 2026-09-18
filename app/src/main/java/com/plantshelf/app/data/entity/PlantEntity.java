@@ -70,6 +70,7 @@ public class PlantEntity {
     // Quarantine & Photos
     private String quarantineUntil;
     private String quarantineFrom;
+    private String quarantineReason;
     private String primaryPhotoPath;
 
     private String createdAt;
@@ -334,6 +335,14 @@ public class PlantEntity {
 
     public void setQuarantineFrom(String quarantineFrom) {
         this.quarantineFrom = quarantineFrom;
+    }
+
+    public String getQuarantineReason() {
+        return quarantineReason;
+    }
+
+    public void setQuarantineReason(String quarantineReason) {
+        this.quarantineReason = quarantineReason;
     }
 
     public String getPrimaryPhotoPath() {

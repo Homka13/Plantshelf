@@ -61,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
         setupRecyclerViews();
         observeData();
         setupListeners();
+
+        // Check for updates from GitHub in background
+        com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdates(this, false);
     }
 
     private void setupRecyclerViews() {
@@ -113,9 +116,26 @@ public class MainActivity extends AppCompatActivity {
                 binding.rvPlants.setVisibility(View.VISIBLE);
             }
         });
+
+        viewModel.getQuarantinedCount().observe(this, count -> {
+            int c = count != null ? count : 0;
+            binding.chipQuarantine.setText(getString(R.string.status_quarantine_chip, c));
+            // Show quarantine bar if count > 0 or if user is currently filtering by it
+            binding.layoutQuarantineBar.setVisibility(c > 0 || viewModel.isQuarantineFilterActive() ? View.VISIBLE : View.GONE);
+        });
+
+        viewModel.getQuarantineFilterOnly().observe(this, isActive -> {
+            boolean active = Boolean.TRUE.equals(isActive);
+            binding.chipQuarantine.setChecked(active);
+            binding.tvQuarantineActiveNotice.setVisibility(active ? View.VISIBLE : View.GONE);
+        });
     }
 
     private void setupListeners() {
+        binding.chipQuarantine.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            viewModel.setQuarantineFilter(isChecked);
+        });
+
         binding.swipeRefresh.setOnRefreshListener(() -> {
             // Re-trigger category selection to refresh
             viewModel.selectCategory(viewModel.getSelectedCategoryId());
@@ -222,6 +242,9 @@ public class MainActivity extends AppCompatActivity {
             return true;
         } else if (id == R.id.action_export_backup) {
             exportBackup();
+            return true;
+        } else if (id == R.id.action_check_updates) {
+            com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdates(this, true);
             return true;
         }
         return super.onOptionsItemSelected(item);

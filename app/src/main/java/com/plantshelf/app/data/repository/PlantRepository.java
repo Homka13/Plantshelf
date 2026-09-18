@@ -1,6 +1,7 @@
 package com.plantshelf.app.data.repository;
 
 import android.app.Application;
+import android.content.Context;
 
 import androidx.lifecycle.LiveData;
 
@@ -15,6 +16,7 @@ import com.plantshelf.app.data.entity.PhotoEntity;
 import com.plantshelf.app.data.entity.PlantEntity;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -24,6 +26,7 @@ import java.util.concurrent.Executors;
 
 public class PlantRepository {
 
+    private final Context context;
     private final CategoryDao categoryDao;
     private final PlantDao plantDao;
     private final CareLogDao careLogDao;
@@ -31,6 +34,7 @@ public class PlantRepository {
     private final ExecutorService executor;
 
     public PlantRepository(Application application) {
+        this.context = application.getApplicationContext();
         PlantshelfDatabase db = PlantshelfDatabase.getInstance(application);
         this.categoryDao = db.categoryDao();
         this.plantDao = db.plantDao();
@@ -62,11 +66,17 @@ public class PlantRepository {
     }
 
     public void insertPlant(PlantEntity plant) {
-        executor.execute(() -> plantDao.insert(plant));
+        executor.execute(() -> {
+            plantDao.insert(plant);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
+        });
     }
 
     public void updatePlant(PlantEntity plant) {
-        executor.execute(() -> plantDao.update(plant));
+        executor.execute(() -> {
+            plantDao.update(plant);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
+        });
     }
 
     public void deletePlant(PlantEntity plant) {
@@ -74,6 +84,7 @@ public class PlantRepository {
             careLogDao.deleteLogsForPlant(plant.getId());
             photoDao.deletePhotosForPlant(plant.getId());
             plantDao.delete(plant);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
         });
     }
 
@@ -86,6 +97,7 @@ public class PlantRepository {
             String logId = UUID.randomUUID().toString().substring(0, 8);
             CareLogEntity log = new CareLogEntity(logId, plantId, "water", today, System.currentTimeMillis());
             careLogDao.insert(log);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
         });
     }
 
@@ -97,6 +109,7 @@ public class PlantRepository {
             String logId = UUID.randomUUID().toString().substring(0, 8);
             CareLogEntity log = new CareLogEntity(logId, plantId, "fert", today, System.currentTimeMillis());
             careLogDao.insert(log);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
         });
     }
 
@@ -108,7 +121,39 @@ public class PlantRepository {
             String logId = UUID.randomUUID().toString().substring(0, 8);
             CareLogEntity log = new CareLogEntity(logId, plantId, "mist", today, System.currentTimeMillis());
             careLogDao.insert(log);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
         });
+    }
+
+    public void recordTreatment(String plantId, String drug, String notes, boolean setQuarantine, int quarantineDays, String quarantineReason) {
+        executor.execute(() -> {
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            String logId = UUID.randomUUID().toString().substring(0, 8);
+            CareLogEntity log = new CareLogEntity(logId, plantId, "treatment", today, System.currentTimeMillis());
+            log.setTreatmentDrug(drug);
+            log.setNotes(notes);
+            careLogDao.insert(log);
+
+            if (setQuarantine) {
+                Calendar c = Calendar.getInstance();
+                c.add(Calendar.DAY_OF_YEAR, quarantineDays > 0 ? quarantineDays : 14);
+                String until = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(c.getTime());
+                plantDao.updateQuarantine(plantId, today, until, quarantineReason != null ? quarantineReason : drug);
+            }
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
+        });
+    }
+
+    public void updateQuarantine(String plantId, String until, String reason) {
+        executor.execute(() -> {
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            plantDao.updateQuarantine(plantId, today, until, reason);
+            com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
+        });
+    }
+
+    public LiveData<List<PlantEntity>> getQuarantinedPlants() {
+        return plantDao.getQuarantinedPlants();
     }
 
     // Logs & Photos
