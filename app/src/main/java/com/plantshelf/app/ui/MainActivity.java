@@ -199,7 +199,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_calendar) {
+        if (id == R.id.action_catalog) {
+            Intent intent = new Intent(this, PlantCatalogActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_quick_ai_add) {
+            com.plantshelf.app.ui.dialog.QuickAiAddDialog.show(this, null, null);
+            return true;
+        } else if (id == R.id.action_calendar) {
             Intent intent = new Intent(this, CareCalendarActivity.class);
             startActivity(intent);
             return true;

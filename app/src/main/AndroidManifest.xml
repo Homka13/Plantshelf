@@ -49,6 +49,11 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
+        <activity
+            android:name=".ui.PlantCatalogActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
         <!-- FileProvider for Camera photos -->
         <provider
             android:name="androidx.core.content.FileProvider"

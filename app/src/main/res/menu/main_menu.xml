@@ -10,6 +10,18 @@
         app:showAsAction="collapseActionView|ifRoom" />
 
     <item
+        android:id="@+id/action_quick_ai_add"
+        android:icon="@drawable/ic_auto_awesome"
+        android:title="Додати з Gemini"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_catalog"
+        android:icon="@drawable/ic_menu_book"
+        android:title="Енциклопедія рослин"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_calendar"
         android:icon="@drawable/ic_calendar"
         android:title="@string/menu_calendar"
@@ -19,7 +31,7 @@
         android:id="@+id/action_light_meter"
         android:icon="@drawable/ic_light"
         android:title="@string/menu_light_meter"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_api_settings"

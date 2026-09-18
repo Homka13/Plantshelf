@@ -9,7 +9,6 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -25,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Pure Java service communicating directly with Google Gemini 1.5/2.0 Flash API
- * to identify houseplants by photo and extract structured care requirements.
+ * to identify houseplants by photo or name, and extract structured care requirements.
  */
 public class GeminiPlantAiService {
 
@@ -48,6 +47,9 @@ public class GeminiPlantAiService {
         prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey != null ? apiKey.trim() : "").apply();
     }
 
+    /**
+     * Identify plant using a camera/gallery photo.
+     */
     public static void identifyPlantByPhoto(
             Context context,
             File imageFile,
@@ -60,33 +62,16 @@ public class GeminiPlantAiService {
         }
 
         new Thread(() -> {
-            HttpURLConnection conn = null;
             try {
-                // 1. Resize & encode image to Base64
                 String base64Image = prepareBase64Image(imageFile);
                 if (base64Image == null) {
                     throw new IllegalArgumentException("Не вдалося завантажити фото для аналізу");
                 }
 
-                // 2. Build Gemini Vision payload
                 String promptText = "Ти експерт-ботанік з кімнатних рослин. "
                         + "Визнач кімнатну рослину на цьому фото. "
-                        + "Поверни відповідь ВИКЛЮЧНО валідним JSON без додаткового тексту чи форматування у такій схемі:\n"
-                        + "{\n"
-                        + "  \"name\": \"Назва українською (наприклад, Фікус каучуконосний)\",\n"
-                        + "  \"latin\": \"Латинська ботанічна назва\",\n"
-                        + "  \"variety\": \"Сорт або різновид якщо видно\",\n"
-                        + "  \"difficulty\": \"легка / середня / складна\",\n"
-                        + "  \"light\": \"яскраве розсіяне / півтінь / пряме сонце\",\n"
-                        + "  \"lux\": 12000,\n"
-                        + "  \"intervalDaysSummer\": 7,\n"
-                        + "  \"intervalDaysWinter\": 14,\n"
-                        + "  \"fertIntervalDays\": 14,\n"
-                        + "  \"humidity\": \"середня / висока\",\n"
-                        + "  \"soil\": \"рекомендований склад ґрунту\",\n"
-                        + "  \"warning\": \"попередження якщо отруйна для тварин або чутлива до протягів\",\n"
-                        + "  \"notes\": \"корисні поради щодо догляду\"\n"
-                        + "}";
+                        + "Поверни відповідь ВИКЛЮЧНО валідним JSON без зайвого тексту у такій схемі:\n"
+                        + getJsonSchemaPrompt();
 
                 JsonObject payload = new JsonObject();
                 JsonArray contentsArray = new JsonArray();
@@ -110,59 +95,123 @@ public class GeminiPlantAiService {
                 contentsArray.add(contentObj);
                 payload.add("contents", contentsArray);
 
-                // 3. Send HTTP Request
-                String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
-                URL url = new URL(endpoint);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(30000);
-                conn.setReadTimeout(30000);
-
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
-                    os.write(input, 0, input.length);
-                }
-
-                int code = conn.getResponseCode();
-                InputStream stream = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-
-                if (code != 200) {
-                    throw new RuntimeException("Помилка сервера Gemini (" + code + "): " + response.toString());
-                }
-
-                // 4. Parse Gemini Response JSON
-                JsonObject geminiResp = JsonParser.parseString(response.toString()).getAsJsonObject();
-                String rawText = extractTextFromGeminiResponse(geminiResp);
-
-                // Extract JSON object from raw response text
-                String cleanJson = cleanJsonContent(rawText);
-                AiPlantAnalysisResult result = new Gson().fromJson(cleanJson, AiPlantAnalysisResult.class);
-
-                callback.onSuccess(result);
-
+                sendGeminiRequest(apiKey, payload, callback);
             } catch (Exception e) {
                 Log.e(TAG, "Error in identifyPlantByPhoto", e);
                 callback.onError(e);
-            } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
             }
         }).start();
+    }
+
+    /**
+     * Generate plant care profile simply by plant name (e.g. "Філодендрон Біркін").
+     */
+    public static void generatePlantByName(
+            Context context,
+            String plantName,
+            AiAnalysisCallback callback
+    ) {
+        String apiKey = getSavedApiKey(context);
+        if (apiKey.isEmpty()) {
+            callback.onError(new IllegalStateException("API ключ не встановлено"));
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                String promptText = "Ти експерт-ботанік з кімнатних рослин. "
+                        + "Склади точний та вичерпний паспорт догляду для кімнатної рослини: '" + plantName + "'. "
+                        + "Поверни відповідь ВИКЛЮЧНО валідним JSON без зайвого тексту у такій схемі:\n"
+                        + getJsonSchemaPrompt();
+
+                JsonObject payload = new JsonObject();
+                JsonArray contentsArray = new JsonArray();
+                JsonObject contentObj = new JsonObject();
+                JsonArray partsArray = new JsonArray();
+
+                JsonObject textPart = new JsonObject();
+                textPart.addProperty("text", promptText);
+                partsArray.add(textPart);
+
+                contentObj.add("parts", partsArray);
+                contentsArray.add(contentObj);
+                payload.add("contents", contentsArray);
+
+                sendGeminiRequest(apiKey, payload, callback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error in generatePlantByName", e);
+                callback.onError(e);
+            }
+        }).start();
+    }
+
+    private static String getJsonSchemaPrompt() {
+        return "{\n"
+                + "  \"name\": \"Назва українською (наприклад, Фікус каучуконосний)\",\n"
+                + "  \"latin\": \"Латинська ботанічна назва\",\n"
+                + "  \"variety\": \"Сорт або різновид якщо відомо\",\n"
+                + "  \"difficulty\": \"дуже легка / легка / середня / складна\",\n"
+                + "  \"light\": \"яскраве розсіяне / півтінь / пряме сонце\",\n"
+                + "  \"lux\": 12000,\n"
+                + "  \"intervalDaysSummer\": 7,\n"
+                + "  \"intervalDaysWinter\": 14,\n"
+                + "  \"fertIntervalDays\": 14,\n"
+                + "  \"humidity\": \"низька / середня / висока\",\n"
+                + "  \"soil\": \"рекомендований склад субстрату\",\n"
+                + "  \"warning\": \"попередження якщо отруйна для котів/собак\",\n"
+                + "  \"notes\": \"практичні поради щодо поливу та догляду\"\n"
+                + "}";
+    }
+
+    private static void sendGeminiRequest(String apiKey, JsonObject payload, AiAnalysisCallback callback) {
+        HttpURLConnection conn = null;
+        try {
+            String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+            URL url = new URL(endpoint);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(30000);
+            conn.setReadTimeout(30000);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int code = conn.getResponseCode();
+            InputStream stream = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+
+            if (code != 200) {
+                throw new RuntimeException("Помилка сервера Gemini (" + code + "): " + response.toString());
+            }
+
+            JsonObject geminiResp = JsonParser.parseString(response.toString()).getAsJsonObject();
+            String rawText = extractTextFromGeminiResponse(geminiResp);
+            String cleanJson = cleanJsonContent(rawText);
+            AiPlantAnalysisResult result = new Gson().fromJson(cleanJson, AiPlantAnalysisResult.class);
+
+            callback.onSuccess(result);
+        } catch (Exception e) {
+            Log.e(TAG, "HTTP Request error in GeminiPlantAiService", e);
+            callback.onError(e);
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
     }
 
     private static String prepareBase64Image(File file) {
         if (file == null || !file.exists()) return null;
         try {
-            // First decode bounds
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
             BitmapFactory.decodeFile(file.getAbsolutePath(), options);
