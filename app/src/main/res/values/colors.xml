@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Botanical Colors -->
+    <color name="primary">#2D6A4F</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#D8F3DC</color>
+    <color name="on_primary_container">#081C15</color>
+
+    <color name="secondary">#52796F</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#B7E4C7</color>
+    <color name="on_secondary_container">#1B4332</color>
+
+    <color name="tertiary">#B07A6E</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="tertiary_container">#F8E7E4</color>
+
+    <!-- Urgency & Status Colors -->
+    <color name="status_urgent">#E63946</color>
+    <color name="status_due_today">#E76F51</color>
+    <color name="status_soon">#F4A261</color>
+    <color name="status_good">#40916C</color>
+    <color name="status_quarantine">#9A6EB0</color>
+
+    <!-- Neutral Colors -->
+    <color name="background_light">#F8F9FA</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_variant_light">#EAEBED</color>
+    <color name="on_surface_light">#1A1C1E</color>
+    <color name="on_surface_variant_light">#43474E</color>
+
+    <color name="background_dark">#121513</color>
+    <color name="surface_dark">#1B1E1C</color>
+    <color name="surface_variant_dark">#282D2A</color>
+    <color name="on_surface_dark">#E2E3DF</color>
+    <color name="on_surface_variant_dark">#C2C8C3</color>
+
+    <!-- Water and Mist accent -->
+    <color name="water_blue">#3A86C8</color>
+    <color name="mist_cyan">#2A9D8F</color>
+    <color name="fert_orange">#E76F51</color>
+</resources>

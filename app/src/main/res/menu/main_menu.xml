@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_light_meter"
+        android:icon="@drawable/ic_light"
+        android:title="@string/menu_light_meter"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_import_backup"
+        android:title="@string/menu_import_backup"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_export_backup"
+        android:title="@string/menu_export_backup"
+        app:showAsAction="never" />
+
+</menu>

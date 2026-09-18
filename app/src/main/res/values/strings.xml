@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Plantshelf</string>
+
+    <!-- Main screen -->
+    <string name="title_shelves">Мої полиці</string>
+    <string name="filter_all">Всі рослини</string>
+    <string name="search_hint">Пошук рослини за назвою...</string>
+    <string name="empty_plants_title">Поки що немає рослин</string>
+    <string name="empty_plants_desc">Додайте першу рослину або імпортуйте бекап з Brunq</string>
+    <string name="btn_import_backup">Імпортувати бекап Brunq</string>
+    <string name="btn_add_plant">Додати рослину</string>
+
+    <!-- Status & Care badges -->
+    <string name="status_overdue">Прострочено на %1$d дн.</string>
+    <string name="status_today">Полити сьогодні</string>
+    <string name="status_days_left">Через %1$d дн.</string>
+    <string name="status_quarantine_badge">Карантин</string>
+
+    <!-- Care actions -->
+    <string name="action_water">Полити</string>
+    <string name="action_mist">Обприскати</string>
+    <string name="action_fertilize">Добрива</string>
+    <string name="action_watered_success">Рослину успішно полито!</string>
+    <string name="action_misted_success">Рослину обприскано!</string>
+    <string name="action_fertilized_success">Добрива внесено!</string>
+
+    <!-- Plant details -->
+    <string name="section_care_schedule">Графік догляду</string>
+    <string name="label_summer_watering">Літній полив</string>
+    <string name="label_winter_watering">Зимовий полив</string>
+    <string name="label_fertilizer_freq">Підживлення</string>
+    <string name="label_mist_freq">Обприскування</string>
+    <string name="days_unit">%1$d дн.</string>
+    <string name="section_requirements">Вимоги до середовища</string>
+    <string name="label_light">Освітлення</string>
+    <string name="label_target_lux">Цільове світло</string>
+    <string name="lux_unit">%1$d люкс</string>
+    <string name="label_humidity">Вологість</string>
+    <string name="label_difficulty">Складність</string>
+    <string name="label_pot_size">Розмір горщика</string>
+    <string name="cm_unit">%1$d см</string>
+    <string name="label_soil">Ґрунт</string>
+    <string name="label_warning">Особливості / Безпека</string>
+    <string name="label_comments">Нотатки</string>
+    <string name="section_care_history">Журнал догляду</string>
+
+    <!-- Light meter -->
+    <string name="title_light_meter">Люксметр</string>
+    <string name="light_sensor_reading">Поточне освітлення:</string>
+    <string name="light_sensor_not_available">Датчик освітлення недоступний на цьому пристрої</string>
+    <string name="light_tip">Піднесіть верхню частину смартфона до листя рослини</string>
+
+    <!-- Backup & Settings -->
+    <string name="importing_backup_title">Імпорт даних Brunq...</string>
+    <string name="import_success">Успішно імпортовано %1$d рослин та %2$d кімнат!</string>
+    <string name="import_error">Помилка читання бекапу: %1$s</string>
+    <string name="menu_import_backup">Імпорт бекапу Brunq</string>
+    <string name="menu_export_backup">Експорт бекапу</string>
+    <string name="menu_light_meter">Люксметр</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">Нагадування про полив</string>
+    <string name="notif_channel_desc">Сповіщення про необхідність полити рослини</string>
+    <string name="notif_title_care_needed">Час подбати про рослини 🌱</string>
+    <string name="notif_body_single">Час полити %1$s!</string>
+    <string name="notif_body_multiple">%1$d рослин очікують на полив сьогодні.</string>
+</resources>
