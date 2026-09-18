@@ -310,7 +310,7 @@ public class BrunqBackupImporter {
                     latin = reader.nextString();
                     break;
                 case "categoryId":
-                    categoryId = reader.nextString();
+                    categoryId = cleanOptionalId(reader.nextString());
                     break;
                 case "type":
                     type = reader.nextString();
@@ -596,13 +596,17 @@ public class BrunqBackupImporter {
 
     public static String sanitizeId(String id, String prefix) {
         if (id == null || id.trim().isEmpty()) {
-            return prefix + "_" + UUID.randomUUID().toString();
+            return prefix != null ? prefix + "_" + UUID.randomUUID().toString() : null;
         }
         String cleaned = id.replaceAll("[^a-zA-Z0-9_-]", "_");
         if (cleaned.isEmpty()) {
-            return prefix + "_" + UUID.randomUUID().toString();
+            return prefix != null ? prefix + "_" + UUID.randomUUID().toString() : null;
         }
         return cleaned;
+    }
+
+    public static String cleanOptionalId(String id) {
+        return sanitizeId(id, null);
     }
 
     private static int readSafeInt(JsonReader reader, int def) {

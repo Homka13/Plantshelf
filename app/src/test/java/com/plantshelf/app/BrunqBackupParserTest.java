@@ -92,4 +92,28 @@ public class BrunqBackupParserTest {
             assertTrue(data.careLogs.get(0).getId().startsWith("log_"));
         }
     }
+
+    @Test
+    public void testCategoryForeignKeyAlignmentWithSpecialChars() throws Exception {
+        String json = "{"
+                + "\"categories\":[{\"id\":\"room.living:123\",\"name\":\"Вітальня\"}],"
+                + "\"plants\":[{\"name\":\"Монстера\",\"categoryId\":\"room.living:123\"}]"
+                + "}";
+
+        try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+             com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(new java.io.InputStreamReader(bais, java.nio.charset.StandardCharsets.UTF_8))) {
+            com.plantshelf.app.data.importer.BrunqBackupImporter.ParsedData data =
+                    com.plantshelf.app.data.importer.BrunqBackupImporter.parseStream(reader, null, null);
+
+            assertEquals(1, data.categories.size());
+            assertEquals(1, data.plants.size());
+
+            String categoryId = data.categories.get(0).getId();
+            String plantCategoryId = data.plants.get(0).getCategoryId();
+
+            assertEquals("room_living_123", categoryId);
+            assertEquals("room_living_123", plantCategoryId);
+            assertEquals(categoryId, plantCategoryId);
+        }
+    }
 }

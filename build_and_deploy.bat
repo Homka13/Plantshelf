@@ -9,13 +9,12 @@ echo.
 
 :: 1. Пошук Java
 if not defined JAVA_HOME (
-    set "GAMMA_JDK=%LOCALAPPDATA%\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\java-runtime-gamma\windows-x64\java-runtime-gamma"
-    if exist "!GAMMA_JDK!" (
-        set "JAVA_HOME=!GAMMA_JDK!"
-        echo [OK] Знайдено JDK 17 LTS: !JAVA_HOME!
-    ) else if exist "C:\Program Files\Android\Android Studio\jbr" (
+    if exist "C:\Program Files\Android\Android Studio\jbr" (
         set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
         echo [OK] Знайдено JDK Android Studio: !JAVA_HOME!
+    ) else if exist "%LOCALAPPDATA%\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\java-runtime-gamma\windows-x64\java-runtime-gamma" (
+        set "JAVA_HOME=%LOCALAPPDATA%\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\java-runtime-gamma\windows-x64\java-runtime-gamma"
+        echo [OK] Знайдено резервний JDK 17: !JAVA_HOME!
     ) else (
         echo [!] JAVA_HOME не встановлено. Перевірте встановлення JDK 17 або Android Studio.
     )

@@ -38,8 +38,45 @@ public class GitHubUpdateManager {
     private static final String GITHUB_REPO = "Plantshelf";
     private static final String API_URL = "https://api.github.com/repos/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/releases/latest";
 
+    private static final String PREFS_UPDATER = "plantshelf_updater_prefs";
+    public static final String KEY_AUTO_CHECK_UPDATES = "auto_check_updates";
+    public static final String KEY_LAST_CHECK_TS = "last_check_timestamp";
+    public static final long CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L; // 24 hours
+
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
     private static Handler mainHandler;
+
+    public static boolean isAutoCheckEnabled(Context context) {
+        return context.getSharedPreferences(PREFS_UPDATER, Context.MODE_PRIVATE)
+                .getBoolean(KEY_AUTO_CHECK_UPDATES, true);
+    }
+
+    public static void setAutoCheckEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREFS_UPDATER, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_AUTO_CHECK_UPDATES, enabled)
+                .apply();
+    }
+
+    public static long getLastCheckTimestamp(Context context) {
+        return context.getSharedPreferences(PREFS_UPDATER, Context.MODE_PRIVATE)
+                .getLong(KEY_LAST_CHECK_TS, 0L);
+    }
+
+    public static void recordCheckTimestamp(Context context) {
+        context.getSharedPreferences(PREFS_UPDATER, Context.MODE_PRIVATE)
+                .edit()
+                .putLong(KEY_LAST_CHECK_TS, System.currentTimeMillis())
+                .apply();
+    }
+
+    public static boolean shouldPerformPeriodicCheck(Context context) {
+        if (!isAutoCheckEnabled(context)) {
+            return false;
+        }
+        long last = getLastCheckTimestamp(context);
+        return (System.currentTimeMillis() - last) >= CHECK_INTERVAL_MS;
+    }
 
     private static synchronized Handler getMainHandler() {
         if (mainHandler == null) {
@@ -49,6 +86,7 @@ public class GitHubUpdateManager {
     }
 
     public static void checkForUpdates(Context context, boolean isUserInitiated) {
+        recordCheckTimestamp(context);
         if (isUserInitiated) {
             Toast.makeText(context, R.string.update_checking, Toast.LENGTH_SHORT).show();
         }

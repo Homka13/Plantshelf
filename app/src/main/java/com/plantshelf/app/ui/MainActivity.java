@@ -63,8 +63,10 @@ public class MainActivity extends AppCompatActivity {
         observeData();
         setupListeners();
 
-        // Check for updates from GitHub in background
-        com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdates(this, false);
+        // Check for updates from GitHub in background (only on cold start, at most once per 24 hours)
+        if (savedInstanceState == null && com.plantshelf.app.updater.GitHubUpdateManager.shouldPerformPeriodicCheck(this)) {
+            com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdates(this, false);
+        }
     }
 
     private void setupRecyclerViews() {

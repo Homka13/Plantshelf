@@ -30,13 +30,35 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Configure Keystore & Build Release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          # 1. Determine dynamic version
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_NAME="1.0.0"
+          fi
+          VERSION_CODE="${{ github.run_number }}"
+          echo "Building Plantshelf version: $VERSION_NAME (code: $VERSION_CODE)"
+
+          # 2. Decode release keystore if secret is provided
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > plantshelf-release.jks
+            export RELEASE_KEYSTORE_PATH="plantshelf-release.jks"
+          fi
+
+          # 3. Assemble release APK
+          ./gradlew assembleRelease -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" --stacktrace
 
       - name: Prepare APK Artifact
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/debug/app-debug.apk release-output/Plantshelf.apk
+          cp app/build/outputs/apk/release/app-release.apk release-output/Plantshelf.apk
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
@@ -49,7 +71,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-output/Plantshelf.apk
-          name: Plantshelf ${{ github.ref_name }}
+          name: 🌱 Plantshelf ${{ github.ref_name }}
           generate_release_notes: true
           draft: false
           prerelease: false

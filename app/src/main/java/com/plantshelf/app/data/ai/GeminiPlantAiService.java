@@ -32,7 +32,7 @@ public class GeminiPlantAiService {
     private static final String PREFS_NAME = "plantshelf_ai_prefs";
     private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
     public static final String KEY_GEMINI_MODEL = "gemini_model";
-    public static final String DEFAULT_MODEL = "gemini-2.5-flash";
+    public static final String DEFAULT_MODEL = "gemini-flash-latest";
 
     public interface AiAnalysisCallback {
         void onSuccess(AiPlantAnalysisResult result);
@@ -206,7 +206,7 @@ public class GeminiPlantAiService {
             }
 
             if (code == 404) {
-                throw new RuntimeException("Модель '" + model + "' недоступна (HTTP 404). Оберіть іншу модель у налаштуваннях AI (наприклад, gemini-2.5-flash).");
+                throw new RuntimeException("Модель '" + model + "' недоступна (HTTP 404). Оберіть іншу модель у налаштуваннях AI (наприклад, gemini-flash-latest або gemini-3.5-flash).");
             } else if (code == 400 || code == 403) {
                 throw new RuntimeException("Помилка авторизації Gemini (HTTP " + code + "): перевірте свій API-ключ або вибрану модель.");
             } else if (code != 200) {

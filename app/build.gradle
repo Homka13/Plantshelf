@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def appVersionName = project.findProperty("versionName") ?: "1.0.0"
+def appVersionCode = project.findProperty("versionCode") ? project.property("versionCode").toInteger() : 1
+
 android {
     namespace 'com.plantshelf.app'
     compileSdk 34
@@ -10,8 +13,8 @@ android {
         applicationId "com.plantshelf.app"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode appVersionCode
+        versionName appVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -22,8 +25,22 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: project.findProperty("RELEASE_KEYSTORE_PATH") ?: "$rootDir/plantshelf-release.jks"
+            def keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: project.findProperty("RELEASE_KEYSTORE_PASSWORD") ?: "PlantshelfRelease2026!"
+                keyAlias System.getenv("RELEASE_KEY_ALIAS") ?: project.findProperty("RELEASE_KEY_ALIAS") ?: "plantshelf"
+                keyPassword System.getenv("RELEASE_KEY_PASSWORD") ?: project.findProperty("RELEASE_KEY_PASSWORD") ?: "PlantshelfRelease2026!"
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
