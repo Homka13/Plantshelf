@@ -29,6 +29,9 @@ android {
         release {
             def keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: project.findProperty("RELEASE_KEYSTORE_PATH") ?: "$rootDir/plantshelf-release.jks"
             def keystoreFile = file(keystorePath)
+            if (!keystoreFile.exists()) {
+                keystoreFile = new File(rootDir, keystorePath)
+            }
             if (keystoreFile.exists()) {
                 storeFile keystoreFile
                 storePassword System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: project.findProperty("RELEASE_KEYSTORE_PASSWORD") ?: "PlantshelfRelease2026!"
@@ -40,7 +43,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

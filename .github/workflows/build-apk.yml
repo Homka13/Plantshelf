@@ -48,12 +48,16 @@ jobs:
 
           # 2. Decode release keystore if secret is provided
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > plantshelf-release.jks
-            export RELEASE_KEYSTORE_PATH="plantshelf-release.jks"
+            echo "$KEYSTORE_BASE64" | base64 -d > plantshelf-release.jks
+            cp plantshelf-release.jks app/plantshelf-release.jks
+            export RELEASE_KEYSTORE_PATH="$GITHUB_WORKSPACE/plantshelf-release.jks"
+            echo "Keystore decoded successfully, size: $(wc -c < plantshelf-release.jks) bytes"
+          else
+            echo "WARNING: KEYSTORE_BASE64 is empty!"
           fi
 
           # 3. Assemble release APK
-          ./gradlew assembleRelease -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" --stacktrace
+          ./gradlew assembleRelease -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" -PRELEASE_KEYSTORE_PATH="$GITHUB_WORKSPACE/plantshelf-release.jks" --stacktrace
 
       - name: Prepare APK Artifact
         run: |
