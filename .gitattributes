@@ -1,0 +1,35 @@
+# Normalize line endings for all text files
+* text=auto
+
+# Java & Kotlin — always LF
+*.java    text eol=lf
+*.kt      text eol=lf
+*.kts     text eol=lf
+
+# Android resources & config — always LF
+*.xml     text eol=lf
+*.gradle  text eol=lf
+*.pro     text eol=lf
+*.properties text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.txt     text eol=lf
+
+# Shell scripts — LF only
+*.sh      text eol=lf
+
+# Windows batch — CRLF
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# Binary files — no conversion
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.webp    binary
+*.ico     binary
+*.apk     binary
+*.aar     binary
+*.jar     binary
+*.keystore binary
