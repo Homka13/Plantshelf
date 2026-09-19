@@ -223,6 +223,15 @@ public class CareCalendarActivity extends AppCompatActivity {
         }
     }
 
+    private final androidx.activity.result.ActivityResultLauncher<String> calendarPermissionLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (Boolean.TRUE.equals(isGranted)) {
+                    startBatchCalendarSync();
+                } else {
+                    Toast.makeText(this, "Потрібен дозвіл для запису в системний календар", Toast.LENGTH_LONG).show();
+                }
+            });
+
     @Override
     public boolean onCreateOptionsMenu(android.view.Menu menu) {
         getMenuInflater().inflate(R.menu.calendar_menu, menu);
@@ -234,11 +243,59 @@ public class CareCalendarActivity extends AppCompatActivity {
         if (item.getItemId() == android.R.id.home) {
             finish();
             return true;
+        } else if (item.getItemId() == R.id.action_sync_all_calendar) {
+            checkAndStartBatchSync();
+            return true;
         } else if (item.getItemId() == R.id.action_export_calendar) {
             exportAllToIcs();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void checkAndStartBatchSync() {
+        if (allPlants.isEmpty()) {
+            Toast.makeText(this, R.string.no_plants_to_export, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(this).hasCalendarPermission()) {
+            startBatchCalendarSync();
+        } else {
+            calendarPermissionLauncher.launch(android.Manifest.permission.WRITE_CALENDAR);
+        }
+    }
+
+    private void startBatchCalendarSync() {
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setTitle("Синхронізація з календарем");
+        progressDialog.setMessage("Синхронізація розкладу рослин...");
+        progressDialog.setProgressStyle(android.app.ProgressDialog.STYLE_SPINNER);
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(this).syncAllPlants(allPlants, new com.plantshelf.app.data.calendar.CalendarSyncManager.SyncCallback() {
+            @Override
+            public void onProgress(int current, int total) {
+            }
+
+            @Override
+            public void onSuccess(int syncedCount) {
+                if (!isFinishing()) {
+                    progressDialog.dismiss();
+                    com.google.android.material.snackbar.Snackbar.make(binding.getRoot(),
+                            "✅ Успішно синхронізовано " + syncedCount + " рослин із системним календарем!",
+                            com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isFinishing()) {
+                    progressDialog.dismiss();
+                    Toast.makeText(CareCalendarActivity.this, message, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
     private void exportAllToIcs() {

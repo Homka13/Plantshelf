@@ -24,8 +24,12 @@ public class PlantDetailViewModel extends AndroidViewModel {
     private final LiveData<List<PhotoEntity>> photos;
 
     public PlantDetailViewModel(@NonNull Application application) {
+        this(application, new PlantRepository(application));
+    }
+
+    public PlantDetailViewModel(@NonNull Application application, @NonNull PlantRepository repository) {
         super(application);
-        repository = new PlantRepository(application);
+        this.repository = repository;
 
         plant = Transformations.switchMap(plantIdLiveData, repository::getPlantById);
         careLogs = Transformations.switchMap(plantIdLiveData, repository::getLogsForPlant);
@@ -83,9 +87,27 @@ public class PlantDetailViewModel extends AndroidViewModel {
         }
     }
 
+    public void updatePlant(PlantEntity plant) {
+        if (plant != null) {
+            repository.updatePlant(plant);
+        }
+    }
+
     public void deletePlant(PlantEntity plant) {
         if (plant != null) {
             repository.deletePlant(plant);
+        }
+    }
+
+    public void deleteCareLog(CareLogEntity log) {
+        if (log != null) {
+            repository.deleteCareLog(log);
+        }
+    }
+
+    public void restoreCareLog(CareLogEntity log) {
+        if (log != null) {
+            repository.insertCareLog(log);
         }
     }
 }

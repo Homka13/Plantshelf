@@ -1,9 +1,10 @@
 plugins {
     id 'com.android.application'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
 
-def appVersionName = project.findProperty("versionName") ?: "1.0.0"
-def appVersionCode = project.findProperty("versionCode") ? project.property("versionCode").toInteger() : 1
+def appVersionName = project.findProperty("versionName") ?: "1.0.2"
+def appVersionCode = project.findProperty("versionCode") ? project.property("versionCode").toInteger() : 3
 
 android {
     namespace 'com.plantshelf.app'
@@ -26,6 +27,12 @@ android {
     }
 
     signingConfigs {
+        debug {
+            storeFile file("${rootDir}/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
         release {
             def keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: project.findProperty("RELEASE_KEYSTORE_PATH") ?: "$rootDir/plantshelf-release.jks"
             def keystoreFile = file(keystorePath)
@@ -42,6 +49,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
@@ -60,12 +70,18 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
+        unitTests.includeAndroidResources = true
     }
 
     buildFeatures {
         viewBinding true
         buildConfig true
     }
+}
+
+secrets {
+    propertiesFileName = ".env"
+    defaultPropertiesFileName = ".env.example"
 }
 
 dependencies {
@@ -97,6 +113,11 @@ dependencies {
 
     // Testing
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.robolectric:robolectric:4.11.1'
+    testImplementation 'androidx.test:core:1.5.0'
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
+    testImplementation 'androidx.room:room-testing:2.6.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

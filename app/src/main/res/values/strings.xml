@@ -7,8 +7,8 @@
     <string name="filter_all">Всі рослини</string>
     <string name="search_hint">Пошук рослини за назвою...</string>
     <string name="empty_plants_title">Поки що немає рослин</string>
-    <string name="empty_plants_desc">Додайте першу рослину або імпортуйте бекап з Brunq</string>
-    <string name="btn_import_backup">Імпортувати бекап Brunq</string>
+    <string name="empty_plants_desc">Додайте першу рослину або імпортуйте бекап</string>
+    <string name="btn_import_backup">Імпортувати бекап</string>
     <string name="btn_add_plant">Додати рослину</string>
 
     <!-- Status & Care badges -->
@@ -52,13 +52,13 @@
     <string name="light_tip">Піднесіть верхню частину смартфона до листя рослини</string>
 
     <!-- Backup & Settings -->
-    <string name="importing_backup_title">Імпорт даних Brunq...</string>
-    <string name="import_confirm_title">Імпорт бекапу Brunq</string>
+    <string name="importing_backup_title">Імпорт даних...</string>
+    <string name="import_confirm_title">Імпорт бекапу</string>
     <string name="import_confirm_message">Увага! Імпорт замінить поточну колекцію рослин та історію догляду даними з файлу бекапу. Продовжити?</string>
     <string name="btn_import">Імпортувати</string>
     <string name="import_success">Успішно імпортовано %1$d рослин та %2$d кімнат!</string>
     <string name="import_error">Помилка читання бекапу: %1$s</string>
-    <string name="menu_import_backup">Імпорт бекапу Brunq</string>
+    <string name="menu_import_backup">Імпорт бекапу</string>
     <string name="menu_export_backup">Експорт бекапу</string>
     <string name="menu_light_meter">Люксметр</string>
     <string name="menu_calendar">Календар догляду</string>
@@ -93,11 +93,24 @@
     <string name="no_api_key_set">Будь ласка, спочатку вкажіть Gemini API ключ у налаштуваннях!</string>
 
     <!-- Notifications -->
+    <string name="menu_notification_settings">Налаштування сповіщень</string>
     <string name="notif_channel_name">Нагадування про полив</string>
     <string name="notif_channel_desc">Сповіщення про необхідність полити рослини</string>
     <string name="notif_title_care_needed">Час подбати про рослини 🌱</string>
     <string name="notif_body_single">Час полити %1$s!</string>
     <string name="notif_body_multiple">%1$d рослин очікують на полив сьогодні.</string>
+    <string name="notif_test_title">Тестове нагадування Plantshelf 🌱</string>
+    <string name="notif_test_body">Сповіщення налаштовано правильно! Додаток нагадуватиме про полив рослин.</string>
+    <string name="dialog_notif_permission_title">Сповіщення про догляд 🌱</string>
+    <string name="dialog_notif_permission_desc">Дозвольте Plantshelf надсилати сповіщення, щоб вчасно поливати та підживлювати ваші рослини за графіком.</string>
+    <string name="dialog_notif_permission_grant">Увімкнути сповіщення</string>
+    <string name="dialog_notif_permission_later">Пізніше</string>
+    <string name="dialog_notif_settings_title">Нагадування про догляд 🌱</string>
+    <string name="notif_setting_enable">Щоденні сповіщення про полив</string>
+    <string name="notif_setting_time_label">Час щоденного нагадування</string>
+    <string name="notif_setting_test_btn">Надіслати тестове сповіщення</string>
+    <string name="notif_setting_test_sent">Тестове сповіщення надіслано!</string>
+    <string name="notif_saved_snackbar">Розклад нагадувань збережено (щодня о %1$s)</string>
 
     <!-- Quarantine & Treatment -->
     <string name="status_quarantine_chip">⚠️ Карантин (%1$d)</string>

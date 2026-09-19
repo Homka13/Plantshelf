@@ -214,6 +214,59 @@
                     android:text="10000" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Recommended Fertilizers -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="Рекомендовані добрива (напр. NPK 10-10-10)">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etRecommendedFertilizers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapSentences" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Fertilizing intervals -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:hint="Добрива літо (днів)">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etFertSummer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:text="14" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:hint="Добрива зима (0=спокій)">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etFertWinter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:text="0" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
             <!-- Soil & Humidity -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

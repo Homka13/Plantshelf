@@ -51,6 +51,12 @@ public class PlantEntity {
     private String fertFreq;
     private int fertIntervalDays;
     private String lastFert; // Format: "yyyy-MM-dd"
+    private String recommendedFertilizers;
+    private int fertilizeIntervalSummerDays;
+    private int fertilizeIntervalWinterDays;
+
+    // Calendar sync tracking
+    private String calendarEventId;
 
     // Misting schedule
     private int mistIntervalDays;
@@ -233,6 +239,38 @@ public class PlantEntity {
 
     public void setLastFert(String lastFert) {
         this.lastFert = lastFert;
+    }
+
+    public String getRecommendedFertilizers() {
+        return recommendedFertilizers != null ? recommendedFertilizers : (fertilizer != null ? fertilizer : "");
+    }
+
+    public void setRecommendedFertilizers(String recommendedFertilizers) {
+        this.recommendedFertilizers = recommendedFertilizers;
+    }
+
+    public int getFertilizeIntervalSummerDays() {
+        return fertilizeIntervalSummerDays > 0 ? fertilizeIntervalSummerDays : (fertIntervalDays > 0 ? fertIntervalDays : 14);
+    }
+
+    public void setFertilizeIntervalSummerDays(int fertilizeIntervalSummerDays) {
+        this.fertilizeIntervalSummerDays = fertilizeIntervalSummerDays;
+    }
+
+    public int getFertilizeIntervalWinterDays() {
+        return fertilizeIntervalWinterDays;
+    }
+
+    public void setFertilizeIntervalWinterDays(int fertilizeIntervalWinterDays) {
+        this.fertilizeIntervalWinterDays = fertilizeIntervalWinterDays;
+    }
+
+    public String getCalendarEventId() {
+        return calendarEventId;
+    }
+
+    public void setCalendarEventId(String calendarEventId) {
+        this.calendarEventId = calendarEventId;
     }
 
     public int getMistIntervalDays() {

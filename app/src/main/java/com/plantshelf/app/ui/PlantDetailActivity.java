@@ -10,7 +10,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -30,6 +32,17 @@ public class PlantDetailActivity extends AppCompatActivity {
     private ActivityPlantDetailBinding binding;
     private PlantDetailViewModel viewModel;
     private CareLogAdapter careLogAdapter;
+
+    private final androidx.activity.result.ActivityResultLauncher<String> calendarPermissionLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), isGranted -> {
+                PlantEntity plant = viewModel.getPlant().getValue();
+                if (plant == null) return;
+                if (Boolean.TRUE.equals(isGranted)) {
+                    syncPlantToCalendar(plant);
+                } else {
+                    com.plantshelf.app.data.calendar.CalendarIntegrationHelper.addPlantCareToSystemCalendar(this, plant, "water");
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +74,27 @@ public class PlantDetailActivity extends AppCompatActivity {
         careLogAdapter = new CareLogAdapter();
         binding.rvCareHistory.setLayoutManager(new LinearLayoutManager(this));
         binding.rvCareHistory.setAdapter(careLogAdapter);
+
+        ItemTouchHelper.SimpleCallback swipeCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                com.plantshelf.app.data.entity.CareLogEntity log = careLogAdapter.getItem(position);
+                if (log != null) {
+                    viewModel.deleteCareLog(log);
+                    Snackbar.make(binding.getRoot(), "Запис видалено з історії", Snackbar.LENGTH_LONG)
+                            .setDuration(4000)
+                            .setAction("Скасувати", v -> viewModel.restoreCareLog(log))
+                            .show();
+                }
+            }
+        };
+        new ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.rvCareHistory);
     }
 
     private void observePlant() {
@@ -86,6 +120,22 @@ public class PlantDetailActivity extends AppCompatActivity {
         binding.tvSummerInterval.setText(getString(R.string.days_unit, plant.getIntervalDays()));
         binding.tvWinterInterval.setText(getString(R.string.days_unit, plant.getIntervalDaysWinter()));
         binding.tvFertInterval.setText(getString(R.string.days_unit, plant.getFertIntervalDays()));
+
+        // Fertilizing Section
+        String fertRec = plant.getRecommendedFertilizers();
+        if (fertRec != null && !fertRec.trim().isEmpty()) {
+            binding.tvFertilizerType.setText("Рекомендовано: " + fertRec);
+        } else {
+            binding.tvFertilizerType.setText("Рекомендовано: Комплексне добриво з мікроелементами");
+        }
+        int fertSummer = plant.getFertilizeIntervalSummerDays();
+        binding.tvFertilizerSummerSchedule.setText(getString(R.string.days_unit, fertSummer));
+        int fertWinter = plant.getFertilizeIntervalWinterDays();
+        if (fertWinter > 0) {
+            binding.tvFertilizerWinterSchedule.setText(getString(R.string.days_unit, fertWinter));
+        } else {
+            binding.tvFertilizerWinterSchedule.setText("Період спокою (без добрив)");
+        }
 
         // Requirements
         String lightText = "☀️ " + getString(R.string.label_light) + ": " + (plant.getLight() != null ? plant.getLight() : "");
@@ -137,6 +187,12 @@ public class PlantDetailActivity extends AppCompatActivity {
                     .placeholder(R.drawable.ic_placeholder_plant)
                     .into(binding.ivDetailPhoto);
         }
+
+        if (plant.getCalendarEventId() != null && !plant.getCalendarEventId().isEmpty()) {
+            binding.btnAddToCalendar.setText("Синхронізовано з календарем");
+        } else {
+            binding.btnAddToCalendar.setText(R.string.action_add_to_system_calendar);
+        }
     }
 
     private void setupActions() {
@@ -183,12 +239,53 @@ public class PlantDetailActivity extends AppCompatActivity {
             }
         });
 
-        binding.btnAddToCalendar.setOnClickListener(v -> {
-            PlantEntity plant = viewModel.getPlant().getValue();
-            if (plant != null) {
-                com.plantshelf.app.data.calendar.CalendarIntegrationHelper.addPlantCareToSystemCalendar(this, plant, "water");
+        binding.btnAddToCalendar.setOnClickListener(v -> handleCalendarClick());
+    }
+
+    private void handleCalendarClick() {
+        PlantEntity plant = viewModel.getPlant().getValue();
+        if (plant == null) return;
+
+        if (plant.getCalendarEventId() != null && !plant.getCalendarEventId().isEmpty()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Подія в календарі")
+                    .setMessage("Ця рослина вже синхронізована з системним календарем.")
+                    .setPositiveButton("Оновити зараз", (dialog, which) -> {
+                        boolean ok = com.plantshelf.app.data.calendar.CalendarIntegrationHelper.updateCalendarEventSchedule(this, plant);
+                        if (ok) {
+                            Snackbar.make(binding.getRoot(), "Графік оновлено в календарі", Snackbar.LENGTH_SHORT).show();
+                        } else {
+                            syncPlantToCalendar(plant);
+                        }
+                    })
+                    .setNegativeButton("Видалити подію", (dialog, which) -> {
+                        com.plantshelf.app.data.calendar.CalendarIntegrationHelper.deleteCalendarEvent(this, plant.getCalendarEventId());
+                        plant.setCalendarEventId(null);
+                        viewModel.updatePlant(plant);
+                        binding.btnAddToCalendar.setText(R.string.action_add_to_system_calendar);
+                        Snackbar.make(binding.getRoot(), "Подію видалено з календаря", Snackbar.LENGTH_SHORT).show();
+                    })
+                    .setNeutralButton("Закрити", null)
+                    .show();
+        } else {
+            if (com.plantshelf.app.data.calendar.CalendarIntegrationHelper.hasCalendarPermission(this)) {
+                syncPlantToCalendar(plant);
+            } else {
+                calendarPermissionLauncher.launch(android.Manifest.permission.WRITE_CALENDAR);
             }
-        });
+        }
+    }
+
+    private void syncPlantToCalendar(PlantEntity plant) {
+        String eventId = com.plantshelf.app.data.calendar.CalendarIntegrationHelper.insertCalendarEventDirect(this, plant, "water");
+        if (eventId != null) {
+            plant.setCalendarEventId(eventId);
+            viewModel.updatePlant(plant);
+            binding.btnAddToCalendar.setText("Синхронізовано з календарем");
+            Snackbar.make(binding.getRoot(), "✅ Додано в системний календар з автооновленням!", Snackbar.LENGTH_SHORT).show();
+        } else {
+            com.plantshelf.app.data.calendar.CalendarIntegrationHelper.addPlantCareToSystemCalendar(this, plant, "water");
+        }
     }
 
     @Override

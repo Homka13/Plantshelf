@@ -1,8 +1,11 @@
 package com.plantshelf.app.ui;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,6 +16,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -23,12 +27,16 @@ import com.plantshelf.app.data.entity.PlantEntity;
 import com.plantshelf.app.data.importer.BackupExporter;
 import com.plantshelf.app.data.importer.BrunqBackupImporter;
 import com.plantshelf.app.databinding.ActivityMainBinding;
+import com.plantshelf.app.notifications.NotificationPrefs;
+import com.plantshelf.app.notifications.NotificationScheduler;
 import com.plantshelf.app.ui.adapter.PlantAdapter;
 import com.plantshelf.app.ui.adapter.ShelfAdapter;
+import com.plantshelf.app.ui.dialog.NotificationSettingsDialog;
 import com.plantshelf.app.viewmodel.MainViewModel;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,6 +57,30 @@ public class MainActivity extends AppCompatActivity {
             }
     );
 
+    private final ActivityResultLauncher<String> calendarPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (Boolean.TRUE.equals(isGranted)) {
+                    startBatchCalendarSync();
+                } else {
+                    Toast.makeText(this, "Потрібен дозвіл для запису в системний календар", Toast.LENGTH_LONG).show();
+                }
+            });
+
+    private final ActivityResultLauncher<String> postNotificationsLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (Boolean.TRUE.equals(isGranted)) {
+                    NotificationPrefs.setNotificationsEnabled(this, true);
+                    NotificationScheduler.scheduleCareReminder(this);
+                    Snackbar.make(binding.getRoot(),
+                            "✅ Сповіщення увімкнено (щодня о " + NotificationPrefs.getFormattedTime(this) + ")",
+                            Snackbar.LENGTH_LONG)
+                            .setAction("Змінити час", v -> openNotificationSettings())
+                            .show();
+                } else {
+                    Toast.makeText(this, "Сповіщення вимкнено в системних налаштуваннях", Toast.LENGTH_SHORT).show();
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
         // Check for updates on every cold start — shows a subtle Snackbar if a newer version is available
         if (savedInstanceState == null) {
             com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdatesOnLaunch(this, binding.getRoot());
+            checkNotificationPermissionOnLaunch();
         }
     }
 
@@ -243,9 +276,15 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, CareCalendarActivity.class);
             startActivity(intent);
             return true;
+        } else if (id == R.id.action_sync_calendar) {
+            checkAndStartBatchSync();
+            return true;
         } else if (id == R.id.action_light_meter) {
             Intent intent = new Intent(this, LightMeterActivity.class);
             startActivity(intent);
+            return true;
+        } else if (id == R.id.action_notifications_settings) {
+            openNotificationSettings();
             return true;
         } else if (id == R.id.action_api_settings) {
             com.plantshelf.app.ui.dialog.ApiKeyDialog.show(this, null);
@@ -261,6 +300,98 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void checkNotificationPermissionOnLaunch() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!NotificationPrefs.isPermissionPromptShown(this)
+                    && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                showNotificationPermissionDialog();
+            }
+        }
+    }
+
+    private void showNotificationPermissionDialog() {
+        NotificationPrefs.setPermissionPromptShown(this, true);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_notif_permission_title)
+                .setIcon(R.drawable.ic_notifications)
+                .setMessage(R.string.dialog_notif_permission_desc)
+                .setPositiveButton(R.string.dialog_notif_permission_grant, (dialog, which) -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        postNotificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                    }
+                })
+                .setNegativeButton(R.string.dialog_notif_permission_later, null)
+                .show();
+    }
+
+    private void openNotificationSettings() {
+        NotificationSettingsDialog.show(this, new NotificationSettingsDialog.OnNotificationSettingsSavedListener() {
+            @Override
+            public void onSettingsSaved(boolean enabled, int hour, int minute) {
+            }
+
+            @Override
+            public void onRequestPermission() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    postNotificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                }
+            }
+        });
+    }
+
+    private void checkAndStartBatchSync() {
+        List<PlantEntity> plants = viewModel.getPlants().getValue();
+        if (plants == null || plants.isEmpty()) {
+            Toast.makeText(this, R.string.no_plants_to_export, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(this).hasCalendarPermission()) {
+            startBatchCalendarSync();
+        } else {
+            calendarPermissionLauncher.launch(android.Manifest.permission.WRITE_CALENDAR);
+        }
+    }
+
+    private void startBatchCalendarSync() {
+        List<PlantEntity> plants = viewModel.getPlants().getValue();
+        if (plants == null || plants.isEmpty()) {
+            Toast.makeText(this, R.string.no_plants_to_export, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setTitle("Синхронізація з календарем");
+        progressDialog.setMessage("Синхронізація розкладу рослин...");
+        progressDialog.setProgressStyle(android.app.ProgressDialog.STYLE_SPINNER);
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(this).syncAllPlants(plants, new com.plantshelf.app.data.calendar.CalendarSyncManager.SyncCallback() {
+            @Override
+            public void onProgress(int current, int total) {
+            }
+
+            @Override
+            public void onSuccess(int syncedCount) {
+                if (!isFinishing()) {
+                    progressDialog.dismiss();
+                    Snackbar.make(binding.getRoot(),
+                            "✅ Успішно синхронізовано " + syncedCount + " рослин із системним календарем!",
+                            Snackbar.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isFinishing()) {
+                    progressDialog.dismiss();
+                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
     private void exportBackup() {

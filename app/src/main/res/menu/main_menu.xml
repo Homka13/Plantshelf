@@ -28,9 +28,21 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_sync_calendar"
+        android:icon="@drawable/ic_sync"
+        android:title="Синхронізувати з календарем"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_light_meter"
         android:icon="@drawable/ic_light"
         android:title="@string/menu_light_meter"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_notifications_settings"
+        android:icon="@drawable/ic_notifications"
+        android:title="@string/menu_notification_settings"
         app:showAsAction="never" />
 
     <item

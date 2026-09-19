@@ -2,6 +2,7 @@ package com.plantshelf.app.data.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
@@ -21,6 +22,9 @@ public interface CareLogDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(CareLogEntity log);
+
+    @Delete
+    void delete(CareLogEntity log);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<CareLogEntity> logs);

@@ -11,6 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.plantshelf.app.BuildConfig;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -18,8 +19,11 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -81,7 +85,18 @@ public class GeminiPlantAiService {
 
     public static String getSavedApiKey(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_GEMINI_API_KEY, "");
+        String savedKey = prefs.getString(KEY_GEMINI_API_KEY, "");
+        if (savedKey != null && !savedKey.trim().isEmpty()) {
+            return savedKey.trim();
+        }
+        try {
+            if (BuildConfig.GEMINI_API_KEY != null && !BuildConfig.GEMINI_API_KEY.trim().isEmpty()
+                    && !"your_api_key_here".equalsIgnoreCase(BuildConfig.GEMINI_API_KEY.trim())) {
+                return BuildConfig.GEMINI_API_KEY.trim();
+            }
+        } catch (Throwable ignored) {
+        }
+        return "";
     }
 
     public static String getSavedModel(Context context) {
@@ -210,6 +225,9 @@ public class GeminiPlantAiService {
                 + "  \"intervalDaysSummer\": 7,\n"
                 + "  \"intervalDaysWinter\": 14,\n"
                 + "  \"fertIntervalDays\": 14,\n"
+                + "  \"recommendedFertilizers\": \"Рекомендований тип і склад добрива (наприклад, комплексне NPK 10-10-10 або для сукулентів)\",\n"
+                + "  \"fertilizeIntervalSummerDays\": 14,\n"
+                + "  \"fertilizeIntervalWinterDays\": 0,\n"
                 + "  \"humidity\": \"низька / середня / висока\",\n"
                 + "  \"soil\": \"рекомендований склад субстрату\",\n"
                 + "  \"warning\": \"попередження якщо отруйна для котів/собак\",\n"
@@ -247,8 +265,10 @@ public class GeminiPlantAiService {
 
             if (code == 404) {
                 throw new RuntimeException("Модель '" + model + "' недоступна (HTTP 404). Оберіть іншу модель у налаштуваннях AI (наприклад, gemini-flash-latest або gemini-3.5-flash).");
+            } else if (code == 429) {
+                throw new RuntimeException("Перевищено ліміти запитів Gemini API (HTTP 429). Зачекайте хвилину перед повторним запитом.");
             } else if (code == 400 || code == 403) {
-                throw new RuntimeException("Помилка авторизації Gemini (HTTP " + code + "): перевірте свій API-ключ або вибрану модель.");
+                throw new RuntimeException("Недійсний або неактивний API-ключ Gemini (HTTP " + code + "). Перевірте ключ у налаштуваннях додатка.");
             } else if (code != 200) {
                 throw new RuntimeException("Помилка сервера Gemini (" + code + "): " + response.toString());
             }
@@ -261,7 +281,12 @@ public class GeminiPlantAiService {
             callback.onSuccess(result);
         } catch (Exception e) {
             Log.e(TAG, "HTTP Request error in GeminiPlantAiService", e);
-            callback.onError(e);
+            Exception friendlyException = e;
+            if (e instanceof UnknownHostException || e instanceof ConnectException || e instanceof SocketTimeoutException) {
+                friendlyException = new RuntimeException("Відсутній зв'язок з інтернетом або перевищено час очікування відповіді Gemini. Перевірте з'єднання з мережею.", e);
+            }
+            AiErrorLogger.log(context, "GeminiRequest", friendlyException, "model=" + getSavedModel(context));
+            callback.onError(friendlyException);
         } finally {
             if (conn != null) {
                 conn.disconnect();

@@ -1,0 +1,6 @@
+{
+  "name": "Plantshelf",
+  "description": "Plant care tracking and shelf management application with care schedules, light meter, and AI plant identification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

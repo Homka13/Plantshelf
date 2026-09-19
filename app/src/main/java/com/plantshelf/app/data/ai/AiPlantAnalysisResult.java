@@ -11,6 +11,9 @@ public class AiPlantAnalysisResult {
     private int intervalDaysSummer;
     private int intervalDaysWinter;
     private int fertIntervalDays;
+    private String recommendedFertilizers;
+    private int fertilizeIntervalSummerDays;
+    private int fertilizeIntervalWinterDays;
     private String humidity;
     private String soil;
     private String warning;
@@ -81,11 +84,35 @@ public class AiPlantAnalysisResult {
     }
 
     public int getFertIntervalDays() {
-        return fertIntervalDays > 0 ? fertIntervalDays : 14;
+        return fertIntervalDays > 0 ? fertIntervalDays : (fertilizeIntervalSummerDays > 0 ? fertilizeIntervalSummerDays : 14);
     }
 
     public void setFertIntervalDays(int fertIntervalDays) {
         this.fertIntervalDays = fertIntervalDays;
+    }
+
+    public String getRecommendedFertilizers() {
+        return recommendedFertilizers != null ? recommendedFertilizers : "";
+    }
+
+    public void setRecommendedFertilizers(String recommendedFertilizers) {
+        this.recommendedFertilizers = recommendedFertilizers;
+    }
+
+    public int getFertilizeIntervalSummerDays() {
+        return fertilizeIntervalSummerDays > 0 ? fertilizeIntervalSummerDays : getFertIntervalDays();
+    }
+
+    public void setFertilizeIntervalSummerDays(int fertilizeIntervalSummerDays) {
+        this.fertilizeIntervalSummerDays = fertilizeIntervalSummerDays;
+    }
+
+    public int getFertilizeIntervalWinterDays() {
+        return fertilizeIntervalWinterDays;
+    }
+
+    public void setFertilizeIntervalWinterDays(int fertilizeIntervalWinterDays) {
+        this.fertilizeIntervalWinterDays = fertilizeIntervalWinterDays;
     }
 
     public String getHumidity() {

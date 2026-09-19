@@ -28,6 +28,13 @@ public class CareLogAdapter extends RecyclerView.Adapter<CareLogAdapter.LogViewH
         notifyDataSetChanged();
     }
 
+    public CareLogEntity getItem(int position) {
+        if (position >= 0 && position < logs.size()) {
+            return logs.get(position);
+        }
+        return null;
+    }
+
     @NonNull
     @Override
     public LogViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {

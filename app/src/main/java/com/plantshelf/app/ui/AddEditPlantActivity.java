@@ -69,22 +69,29 @@ public class AddEditPlantActivity extends AppCompatActivity {
         final int summerInterval;
         final int winterInterval;
         final int lux;
+        final String recommendedFertilizers;
+        final int fertSummerInterval;
+        final int fertWinterInterval;
         final String today;
 
         PlantFormData(String name, String variety, String latin, String soil, String warning,
                       String notes, String categoryId, int summerInterval, int winterInterval,
-                      int lux, String today) {
-            this.name           = name;
-            this.variety        = variety;
-            this.latin          = latin;
-            this.soil           = soil;
-            this.warning        = warning;
-            this.notes          = notes;
-            this.categoryId     = categoryId;
-            this.summerInterval = summerInterval;
-            this.winterInterval = winterInterval;
-            this.lux            = lux;
-            this.today          = today;
+                      int lux, String recommendedFertilizers, int fertSummerInterval,
+                      int fertWinterInterval, String today) {
+            this.name                   = name;
+            this.variety                = variety;
+            this.latin                  = latin;
+            this.soil                   = soil;
+            this.warning                = warning;
+            this.notes                  = notes;
+            this.categoryId             = categoryId;
+            this.summerInterval         = summerInterval;
+            this.winterInterval         = winterInterval;
+            this.lux                    = lux;
+            this.recommendedFertilizers = recommendedFertilizers;
+            this.fertSummerInterval     = fertSummerInterval;
+            this.fertWinterInterval     = fertWinterInterval;
+            this.today                  = today;
         }
     }
 
@@ -162,6 +169,9 @@ public class AddEditPlantActivity extends AppCompatActivity {
         binding.etIntervalSummer.setText(String.valueOf(plant.getIntervalDays()));
         binding.etIntervalWinter.setText(String.valueOf(plant.getIntervalDaysWinter()));
         binding.etTargetLux.setText(String.valueOf(plant.getLux()));
+        binding.etRecommendedFertilizers.setText(plant.getRecommendedFertilizers() != null ? plant.getRecommendedFertilizers() : "");
+        binding.etFertSummer.setText(String.valueOf(plant.getFertilizeIntervalSummerDays()));
+        binding.etFertWinter.setText(String.valueOf(plant.getFertilizeIntervalWinterDays()));
 
         selectedPhotoPath = plant.getPrimaryPhotoPath();
         if (selectedPhotoPath != null && new File(selectedPhotoPath).exists()) {
@@ -322,6 +332,11 @@ public class AddEditPlantActivity extends AppCompatActivity {
         if (!result.getSoil().isEmpty())    binding.etSoil.setText(result.getSoil());
         if (!result.getWarning().isEmpty()) binding.etWarning.setText(result.getWarning());
         if (!result.getNotes().isEmpty())   binding.etNotes.setText(result.getNotes());
+        if (!result.getRecommendedFertilizers().isEmpty()) {
+            binding.etRecommendedFertilizers.setText(result.getRecommendedFertilizers());
+        }
+        binding.etFertSummer.setText(String.valueOf(result.getFertilizeIntervalSummerDays()));
+        binding.etFertWinter.setText(String.valueOf(result.getFertilizeIntervalWinterDays()));
 
         Toast.makeText(this, R.string.ai_success, Toast.LENGTH_LONG).show();
     }
@@ -349,6 +364,10 @@ public class AddEditPlantActivity extends AppCompatActivity {
         int winterInterval = parseIntField(binding.etIntervalWinter, summerInterval);
         int targetLux      = parseIntField(binding.etTargetLux, 10000);
 
+        String recommendedFertilizers = getText(binding.etRecommendedFertilizers);
+        int fertSummerInterval = parseIntField(binding.etFertSummer, 14);
+        int fertWinterInterval = parseIntField(binding.etFertWinter, 0);
+
         String selectedCategoryId = null;
         int spinnerPos = binding.spinnerCategories.getSelectedItemPosition();
         if (spinnerPos > 0 && spinnerPos - 1 < categoryList.size()) {
@@ -358,7 +377,8 @@ public class AddEditPlantActivity extends AppCompatActivity {
         String today = LocalDate.now(ZoneId.systemDefault()).toString();
 
         PlantFormData data = new PlantFormData(name, variety, latin, soil, warning, notes,
-                selectedCategoryId, summerInterval, winterInterval, targetLux, today);
+                selectedCategoryId, summerInterval, winterInterval, targetLux,
+                recommendedFertilizers, fertSummerInterval, fertWinterInterval, today);
 
         if (editingPlant != null) {
             updateExistingPlant(data);
@@ -379,6 +399,10 @@ public class AddEditPlantActivity extends AppCompatActivity {
         editingPlant.setIntervalDays(d.summerInterval);
         editingPlant.setIntervalDaysWinter(d.winterInterval);
         editingPlant.setLux(d.lux);
+        editingPlant.setRecommendedFertilizers(d.recommendedFertilizers);
+        editingPlant.setFertilizeIntervalSummerDays(d.fertSummerInterval);
+        editingPlant.setFertilizeIntervalWinterDays(d.fertWinterInterval);
+        editingPlant.setFertIntervalDays(d.fertSummerInterval);
 
         boolean photoChanged = selectedPhotoPath != null
                 && !selectedPhotoPath.equals(editingPlant.getPrimaryPhotoPath());
@@ -410,6 +434,10 @@ public class AddEditPlantActivity extends AppCompatActivity {
         plant.setIntervalDays(d.summerInterval);
         plant.setIntervalDaysWinter(d.winterInterval);
         plant.setLux(d.lux);
+        plant.setRecommendedFertilizers(d.recommendedFertilizers);
+        plant.setFertilizeIntervalSummerDays(d.fertSummerInterval);
+        plant.setFertilizeIntervalWinterDays(d.fertWinterInterval);
+        plant.setFertIntervalDays(d.fertSummerInterval);
         plant.setPrimaryPhotoPath(selectedPhotoPath);
         plant.setLastWatered(d.today);
         plant.setCreatedAt(d.today);

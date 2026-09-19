@@ -28,8 +28,12 @@ public class MainViewModel extends AndroidViewModel {
     private final MediatorLiveData<Integer> quarantinedCount = new MediatorLiveData<>();
 
     public MainViewModel(@NonNull Application application) {
+        this(application, new PlantRepository(application));
+    }
+
+    public MainViewModel(@NonNull Application application, @NonNull PlantRepository repository) {
         super(application);
-        repository = new PlantRepository(application);
+        this.repository = repository;
         categories = repository.getAllCategories();
         rawPlants = repository.getAllPlants();
 

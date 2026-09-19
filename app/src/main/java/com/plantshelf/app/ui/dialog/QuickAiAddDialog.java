@@ -15,6 +15,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.plantshelf.app.R;
 import com.plantshelf.app.data.ai.AiPlantAnalysisResult;
 import com.plantshelf.app.data.ai.GeminiPlantAiService;
+import com.plantshelf.app.data.catalog.CatalogPlant;
+import com.plantshelf.app.data.catalog.PlantCatalogRepository;
 import com.plantshelf.app.data.database.PlantshelfDatabase;
 import com.plantshelf.app.data.entity.CategoryEntity;
 import com.plantshelf.app.data.entity.PlantEntity;
@@ -114,6 +116,9 @@ public class QuickAiAddDialog {
                     plant.setIntervalDays(result.getIntervalDaysSummer());
                     plant.setIntervalDaysWinter(result.getIntervalDaysWinter());
                     plant.setFertIntervalDays(result.getFertIntervalDays());
+                    plant.setRecommendedFertilizers(result.getRecommendedFertilizers());
+                    plant.setFertilizeIntervalSummerDays(result.getFertilizeIntervalSummerDays());
+                    plant.setFertilizeIntervalWinterDays(result.getFertilizeIntervalWinterDays());
                     plant.setHumidity(result.getHumidity());
                     plant.setSoil(result.getSoil());
                     plant.setWarning(result.getWarning());
@@ -140,10 +145,65 @@ public class QuickAiAddDialog {
             public void onError(Exception e) {
                 if (context instanceof android.app.Activity) {
                     ((android.app.Activity) context).runOnUiThread(() -> {
-                        Toast.makeText(context, "Помилка AI: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        String errMsg = e.getMessage() != null ? e.getMessage() : "Невідома помилка";
+                        List<CatalogPlant> matches = PlantCatalogRepository.filter(plantName, null);
+                        if (!matches.isEmpty()) {
+                            CatalogPlant fallbackPlant = matches.get(0);
+                            new MaterialAlertDialogBuilder(context)
+                                    .setTitle("Помилка AI та офлайн-довідник")
+                                    .setMessage(errMsg + "\n\nАле у вбудованій офлайн-енциклопедії знайдено рослину: \""
+                                            + fallbackPlant.getName() + " (" + fallbackPlant.getLatin() + ")\". Додати її з енциклопедії?")
+                                    .setPositiveButton("Додати з енциклопедії", (d, which) -> {
+                                        addCatalogPlantDirectly(context, fallbackPlant, categoryId, callback);
+                                    })
+                                    .setNegativeButton("Скасувати", null)
+                                    .show();
+                        } else {
+                            Toast.makeText(context, "Помилка AI: " + errMsg, Toast.LENGTH_LONG).show();
+                        }
                     });
                 }
             }
         });
+    }
+
+    private static void addCatalogPlantDirectly(
+            Context context,
+            CatalogPlant plant,
+            String categoryId,
+            OnPlantAddedCallback callback
+    ) {
+        new Thread(() -> {
+            String plantId = UUID.randomUUID().toString().substring(0, 8);
+            PlantEntity entity = new PlantEntity(plantId);
+            entity.setName(plant.getName());
+            entity.setLatin(plant.getLatin());
+            entity.setCategoryId(categoryId);
+            entity.setType(plant.getCategory());
+            entity.setDifficulty(plant.getDifficulty());
+            entity.setLight(plant.getLight());
+            entity.setLux(plant.getLux());
+            entity.setIntervalDays(plant.getIntervalSummer());
+            entity.setIntervalDaysWinter(plant.getIntervalWinter());
+            entity.setFertIntervalDays(plant.getFertInterval());
+            entity.setHumidity(plant.getHumidity());
+            entity.setSoil(plant.getSoil());
+            entity.setWarning(plant.getWarning());
+            entity.setComments(plant.getDescription());
+
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            entity.setLastWatered(today);
+            entity.setCreatedAt(today);
+
+            PlantshelfDatabase.getInstance(context).plantDao().insert(entity);
+            PlantCareWidgetProvider.sendUpdateBroadcast(context);
+
+            if (context instanceof android.app.Activity) {
+                ((android.app.Activity) context).runOnUiThread(() -> {
+                    Toast.makeText(context, "🌱 " + plant.getName() + " додано з офлайн-енциклопедії!", Toast.LENGTH_LONG).show();
+                    if (callback != null) callback.onPlantAdded();
+                });
+            }
+        }).start();
     }
 }

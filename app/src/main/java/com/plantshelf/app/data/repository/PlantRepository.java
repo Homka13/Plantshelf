@@ -43,6 +43,16 @@ public class PlantRepository {
         this.executor = Executors.newFixedThreadPool(4);
     }
 
+    public PlantRepository(Context context, CategoryDao categoryDao, PlantDao plantDao,
+                           CareLogDao careLogDao, PhotoDao photoDao, ExecutorService executor) {
+        this.context = context;
+        this.categoryDao = categoryDao;
+        this.plantDao = plantDao;
+        this.careLogDao = careLogDao;
+        this.photoDao = photoDao;
+        this.executor = executor != null ? executor : Executors.newSingleThreadExecutor();
+    }
+
     // Categories
     public LiveData<List<CategoryEntity>> getAllCategories() {
         return categoryDao.getAllCategories();
@@ -75,12 +85,18 @@ public class PlantRepository {
     public void updatePlant(PlantEntity plant) {
         executor.execute(() -> {
             plantDao.update(plant);
+            if (context != null) {
+                com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(context).updateEventForPlant(plant);
+            }
             com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
         });
     }
 
     public void deletePlant(PlantEntity plant) {
         executor.execute(() -> {
+            if (context != null) {
+                com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(context).deleteEventForPlant(plant);
+            }
             careLogDao.deleteLogsForPlant(plant.getId());
             photoDao.deletePhotosForPlant(plant.getId());
             plantDao.delete(plant);
@@ -159,6 +175,14 @@ public class PlantRepository {
     // Logs & Photos
     public LiveData<List<CareLogEntity>> getLogsForPlant(String plantId) {
         return careLogDao.getLogsForPlant(plantId);
+    }
+
+    public void deleteCareLog(CareLogEntity log) {
+        executor.execute(() -> careLogDao.delete(log));
+    }
+
+    public void insertCareLog(CareLogEntity log) {
+        executor.execute(() -> careLogDao.insert(log));
     }
 
     public LiveData<List<PhotoEntity>> getPhotosForPlant(String plantId) {

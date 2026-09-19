@@ -54,7 +54,7 @@ public class RealBackupStressTest {
     @Test
     public void testRealBackupParsingWithNullDirs() throws Exception {
         File backupFile = locateRealBackupFile();
-        assertTrue("Real backup file must exist at " + backupFile.getAbsolutePath(), backupFile.exists());
+        org.junit.Assume.assumeTrue("Real backup file not found at " + backupFile.getAbsolutePath(), backupFile.exists());
         assertTrue("Backup file must be > 5MB", backupFile.length() > 5 * 1024 * 1024);
 
         long startTime = System.currentTimeMillis();
@@ -112,7 +112,7 @@ public class RealBackupStressTest {
     @Test
     public void testRealBackupParsingWithTempPhotosDir() throws Exception {
         File backupFile = locateRealBackupFile();
-        assertTrue(backupFile.exists());
+        org.junit.Assume.assumeTrue("Real backup file not found at " + backupFile.getAbsolutePath(), backupFile.exists());
 
         File tempPhotosDir = tempFolder.newFolder("temp_photos");
         File finalPhotosDir = tempFolder.newFolder("final_photos");

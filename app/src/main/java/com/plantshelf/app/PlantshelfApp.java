@@ -6,36 +6,25 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
-import com.plantshelf.app.notifications.CareReminderWorker;
 import com.plantshelf.app.notifications.NotificationHelper;
-
-import java.util.concurrent.TimeUnit;
+import com.plantshelf.app.notifications.NotificationScheduler;
 
 public class PlantshelfApp extends Application {
-
-    private static final String WORK_NAME_CARE_REMINDER = "care_reminder_work";
 
     @Override
     public void onCreate() {
         super.onCreate();
 
         // Setup notification channels
-        NotificationHelper.createNotificationChannel(this);
+        try {
+            NotificationHelper.createNotificationChannel(this);
+        } catch (Exception ignored) {}
 
-        // Schedule daily care reminder check
-        scheduleCareReminder();
-    }
-
-    private void scheduleCareReminder() {
-        PeriodicWorkRequest reminderRequest =
-                new PeriodicWorkRequest.Builder(CareReminderWorker.class, 24, TimeUnit.HOURS)
-                        .setInitialDelay(1, TimeUnit.HOURS)
-                        .build();
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                WORK_NAME_CARE_REMINDER,
-                ExistingPeriodicWorkPolicy.KEEP,
-                reminderRequest
-        );
+        // Schedule daily care reminder check according to user preferences
+        try {
+            NotificationScheduler.scheduleCareReminder(this);
+        } catch (Exception e) {
+            android.util.Log.w("PlantshelfApp", "WorkManager init skipped or failed: " + e.getMessage());
+        }
     }
 }

@@ -3,6 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_sync_all_calendar"
+        android:icon="@drawable/ic_sync"
+        android:title="Синхронізувати весь графік"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_export_calendar"
         android:icon="@drawable/ic_share"
         android:title="@string/action_export_ics"
