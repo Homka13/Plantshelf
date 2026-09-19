@@ -82,4 +82,10 @@ public class PlantDetailViewModel extends AndroidViewModel {
             repository.updateQuarantine(id, until, reason);
         }
     }
+
+    public void deletePlant(PlantEntity plant) {
+        if (plant != null) {
+            repository.deletePlant(plant);
+        }
+    }
 }

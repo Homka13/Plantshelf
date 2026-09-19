@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_widget"
@@ -24,7 +25,8 @@
             android:layout_height="22dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_water"
-            android:tint="#2D6A4F" />
+            android:tint="#2D6A4F"
+            tools:ignore="UseAppTint" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -57,14 +59,16 @@
             android:contentDescription="Оновити"
             android:padding="5dp"
             android:src="@drawable/ic_sync"
-            android:tint="#2D6A4F" />
+            android:tint="#2D6A4F"
+            tools:ignore="UseAppTint" />
 
     </LinearLayout>
 
-    <View
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#E0E6E0" />
+        android:background="#E0E6E0"
+        android:contentDescription="@null" />
 
     <!-- Content Frame -->
     <FrameLayout

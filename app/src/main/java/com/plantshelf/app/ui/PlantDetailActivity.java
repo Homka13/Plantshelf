@@ -1,6 +1,8 @@
 package com.plantshelf.app.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
@@ -11,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.plantshelf.app.R;
 import com.plantshelf.app.data.entity.PlantEntity;
@@ -189,11 +192,44 @@ public class PlantDetailActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.plant_detail_menu, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             finish();
             return true;
+        } else if (item.getItemId() == R.id.action_edit_plant) {
+            PlantEntity plant = viewModel.getPlant().getValue();
+            if (plant != null) {
+                Intent intent = new Intent(this, AddEditPlantActivity.class);
+                intent.putExtra(AddEditPlantActivity.EXTRA_PLANT_ID, plant.getId());
+                startActivity(intent);
+            }
+            return true;
+        } else if (item.getItemId() == R.id.action_delete_plant) {
+            confirmDeletePlant();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void confirmDeletePlant() {
+        PlantEntity plant = viewModel.getPlant().getValue();
+        if (plant == null) return;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.delete_plant_title)
+                .setMessage(getString(R.string.delete_plant_confirm_message, plant.getName()))
+                .setPositiveButton(R.string.btn_delete, (dialog, which) -> {
+                    viewModel.deletePlant(plant);
+                    Toast.makeText(this, R.string.plant_deleted_success, Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
     }
 }

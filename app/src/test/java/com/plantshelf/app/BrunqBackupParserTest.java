@@ -48,9 +48,9 @@ public class BrunqBackupParserTest {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         plant.setLastWatered(today);
 
-        // Should be approximately 7 days left
+        // Exactly 7 days left
         int daysLeft = plant.getDaysUntilWatering();
-        assertTrue("Days left should be positive when watered today", daysLeft >= 6 && daysLeft <= 7);
+        assertEquals(7, daysLeft);
     }
 
     @Test

@@ -22,6 +22,7 @@ import com.plantshelf.app.data.entity.PlantEntity;
 import com.plantshelf.app.databinding.ActivityPlantCatalogBinding;
 import com.plantshelf.app.ui.adapter.PlantCatalogAdapter;
 import com.plantshelf.app.ui.dialog.QuickAiAddDialog;
+import com.plantshelf.app.widget.PlantCareWidgetProvider;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -186,6 +187,7 @@ public class PlantCatalogActivity extends AppCompatActivity {
             entity.setCreatedAt(today);
 
             PlantshelfDatabase.getInstance(this).plantDao().insert(entity);
+            PlantCareWidgetProvider.sendUpdateBroadcast(this);
 
             runOnUiThread(() -> {
                 Toast.makeText(this, plant.getName() + " додано на полицю '" + categoryName + "'!", Toast.LENGTH_LONG).show();

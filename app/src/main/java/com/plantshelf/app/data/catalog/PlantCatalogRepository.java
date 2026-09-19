@@ -297,10 +297,13 @@ public class PlantCatalogRepository {
             }
 
             if (!q.isEmpty()) {
-                boolean matchesName = p.getName().toLowerCase().contains(q);
-                boolean matchesLatin = p.getLatin().toLowerCase().contains(q);
-                boolean matchesDesc = p.getDescription().toLowerCase().contains(q);
-                if (!matchesName && !matchesLatin && !matchesDesc) {
+                boolean matchesName = p.getName() != null && p.getName().toLowerCase().contains(q);
+                boolean matchesLatin = p.getLatin() != null && p.getLatin().toLowerCase().contains(q);
+                boolean matchesCategory = p.getCategory() != null && p.getCategory().toLowerCase().contains(q);
+                boolean matchesDesc = p.getDescription() != null && p.getDescription().toLowerCase().contains(q);
+                boolean matchesSoil = p.getSoil() != null && p.getSoil().toLowerCase().contains(q);
+                boolean matchesWarning = p.getWarning() != null && p.getWarning().toLowerCase().contains(q);
+                if (!matchesName && !matchesLatin && !matchesCategory && !matchesDesc && !matchesSoil && !matchesWarning) {
                     continue;
                 }
             }

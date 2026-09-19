@@ -1,7 +1,6 @@
 package com.plantshelf.app.data.importer;
 
 import android.content.Context;
-import android.util.Base64;
 import android.util.Log;
 
 import com.google.gson.stream.JsonReader;
@@ -64,6 +63,8 @@ public class BrunqBackupImporter {
         String kind;
         String date;
         long ts;
+        String treatmentDrug;
+        String notes;
     }
 
     public static void importFromStream(
@@ -187,16 +188,16 @@ public class BrunqBackupImporter {
                 }
                 switch (field) {
                     case "id":
-                        id = sanitizeId(reader.nextString(), "c");
+                        id = sanitizeId(readSafeString(reader, null), "c");
                         break;
                     case "name":
-                        name = reader.nextString();
+                        name = readSafeString(reader, "Кімната");
                         break;
                     case "color":
-                        color = reader.nextString();
+                        color = readSafeString(reader, "#4E8D7C");
                         break;
                     case "icon":
-                        icon = reader.nextString();
+                        icon = readSafeString(reader, "leaf");
                         break;
                     case "smart":
                         smart = readSafeBoolean(reader, false);
@@ -281,6 +282,7 @@ public class BrunqBackupImporter {
         boolean favorite = false;
         String quarantineUntil = null;
         String quarantineFrom = null;
+        String quarantineReason = null;
         String createdAt = null;
         String updatedAt = null;
 
@@ -295,37 +297,37 @@ public class BrunqBackupImporter {
             }
             switch (field) {
                 case "id":
-                    rawId = reader.nextString();
+                    rawId = readSafeString(reader, null);
                     break;
                 case "name":
-                    name = reader.nextString();
+                    name = readSafeString(reader, "Рослина");
                     break;
                 case "nickname":
-                    nickname = reader.nextString();
+                    nickname = readSafeString(reader, "");
                     break;
                 case "variety":
-                    variety = reader.nextString();
+                    variety = readSafeString(reader, "");
                     break;
                 case "latin":
-                    latin = reader.nextString();
+                    latin = readSafeString(reader, "");
                     break;
                 case "categoryId":
-                    categoryId = cleanOptionalId(reader.nextString());
+                    categoryId = cleanOptionalId(readSafeString(reader, null));
                     break;
                 case "type":
-                    type = reader.nextString();
+                    type = readSafeString(reader, "");
                     break;
                 case "difficulty":
-                    difficulty = reader.nextString();
+                    difficulty = readSafeString(reader, "");
                     break;
                 case "light":
-                    light = reader.nextString();
+                    light = readSafeString(reader, "");
                     break;
                 case "windowSide":
-                    windowSide = reader.nextString();
+                    windowSide = readSafeString(reader, "");
                     break;
                 case "humidity":
-                    humidity = reader.nextString();
+                    humidity = readSafeString(reader, "");
                     break;
                 case "lux":
                     lux = readSafeInt(reader, 5000);
@@ -337,64 +339,67 @@ public class BrunqBackupImporter {
                     intervalDaysWinter = readSafeInt(reader, intervalDays);
                     break;
                 case "lastWatered":
-                    lastWatered = reader.nextString();
+                    lastWatered = readSafeString(reader, null);
                     break;
                 case "fertilizer":
-                    fertilizer = reader.nextString();
+                    fertilizer = readSafeString(reader, "");
                     break;
                 case "fertFreq":
-                    fertFreq = reader.nextString();
+                    fertFreq = readSafeString(reader, "");
                     break;
                 case "fertIntervalDays":
                     fertIntervalDays = readSafeInt(reader, 14);
                     break;
                 case "lastFert":
-                    lastFert = reader.nextString();
+                    lastFert = readSafeString(reader, null);
                     break;
                 case "mistIntervalDays":
                     mistIntervalDays = readSafeInt(reader, 3);
                     break;
                 case "lastMisted":
-                    lastMisted = reader.nextString();
+                    lastMisted = readSafeString(reader, null);
                     break;
                 case "potSize":
                     potSize = readSafeInt(reader, 0);
                     break;
                 case "potDepth":
-                    potDepth = reader.nextString();
+                    potDepth = readSafeString(reader, "");
                     break;
                 case "potMaterial":
-                    potMaterial = reader.nextString();
+                    potMaterial = readSafeString(reader, "");
                     break;
                 case "soil":
-                    soil = reader.nextString();
+                    soil = readSafeString(reader, "");
                     break;
                 case "substrate":
-                    substrate = reader.nextString();
+                    substrate = readSafeString(reader, "");
                     break;
                 case "warning":
-                    warning = reader.nextString();
+                    warning = readSafeString(reader, "");
                     break;
                 case "comments":
-                    comments = reader.nextString();
+                    comments = readSafeString(reader, "");
                     break;
                 case "note":
-                    note = reader.nextString();
+                    note = readSafeString(reader, "");
                     break;
                 case "favorite":
                     favorite = readSafeBoolean(reader, false);
                     break;
                 case "quarantineUntil":
-                    quarantineUntil = reader.nextString();
+                    quarantineUntil = readSafeString(reader, null);
                     break;
                 case "quarantineFrom":
-                    quarantineFrom = reader.nextString();
+                    quarantineFrom = readSafeString(reader, null);
+                    break;
+                case "quarantineReason":
+                    quarantineReason = readSafeString(reader, null);
                     break;
                 case "createdAt":
-                    createdAt = reader.nextString();
+                    createdAt = readSafeString(reader, null);
                     break;
                 case "updatedAt":
-                    updatedAt = reader.nextString();
+                    updatedAt = readSafeString(reader, null);
                     break;
                 case "photos":
                     parseRawPhotos(reader, plantPhotos);
@@ -442,6 +447,7 @@ public class BrunqBackupImporter {
         plant.setFavorite(favorite);
         plant.setQuarantineUntil(quarantineUntil);
         plant.setQuarantineFrom(quarantineFrom);
+        plant.setQuarantineReason(quarantineReason);
         plant.setCreatedAt(createdAt);
         plant.setUpdatedAt(updatedAt);
 
@@ -462,7 +468,10 @@ public class BrunqBackupImporter {
         // Process plant care logs
         for (RawCareLog rl : plantLogs) {
             String logId = sanitizeId(rl.id, "log");
-            allLogs.add(new CareLogEntity(logId, plantId, rl.kind != null ? rl.kind : "water", rl.date != null ? rl.date : "", rl.ts));
+            CareLogEntity cle = new CareLogEntity(logId, plantId, rl.kind != null ? rl.kind : "water", rl.date != null ? rl.date : "", rl.ts);
+            cle.setTreatmentDrug(rl.treatmentDrug);
+            cle.setNotes(rl.notes);
+            allLogs.add(cle);
         }
         plantLogs.clear();
 
@@ -490,13 +499,13 @@ public class BrunqBackupImporter {
                 }
                 switch (f) {
                     case "id":
-                        photo.id = reader.nextString();
+                        photo.id = readSafeString(reader, null);
                         break;
                     case "date":
-                        photo.date = reader.nextString();
+                        photo.date = readSafeString(reader, "");
                         break;
                     case "dataUrl":
-                        photo.dataUrl = reader.nextString();
+                        photo.dataUrl = readSafeString(reader, null);
                         break;
                     default:
                         reader.skipValue();
@@ -531,16 +540,22 @@ public class BrunqBackupImporter {
                 }
                 switch (f) {
                     case "id":
-                        log.id = reader.nextString();
+                        log.id = readSafeString(reader, null);
                         break;
                     case "kind":
-                        log.kind = reader.nextString();
+                        log.kind = readSafeString(reader, "water");
                         break;
                     case "date":
-                        log.date = reader.nextString();
+                        log.date = readSafeString(reader, "");
                         break;
                     case "ts":
                         log.ts = readSafeLong(reader, System.currentTimeMillis());
+                        break;
+                    case "treatmentDrug":
+                        log.treatmentDrug = readSafeString(reader, null);
+                        break;
+                    case "notes":
+                        log.notes = readSafeString(reader, null);
                         break;
                     default:
                         reader.skipValue();
@@ -577,11 +592,11 @@ public class BrunqBackupImporter {
             String targetDirCanonical = targetDir.getCanonicalPath() + File.separator;
 
             if (!tempCanonical.startsWith(tempDirCanonical) || !finalCanonical.startsWith(targetDirCanonical)) {
-                Log.w(TAG, "Path traversal attempt rejected for photo: " + rawPhotoId);
+                logWarn(TAG, "Path traversal attempt rejected for photo: " + rawPhotoId);
                 return null;
             }
 
-            byte[] imageBytes = Base64.decode(base64Data, Base64.DEFAULT);
+            byte[] imageBytes = java.util.Base64.getMimeDecoder().decode(base64Data);
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 fos.write(imageBytes);
                 fos.flush();
@@ -589,7 +604,7 @@ public class BrunqBackupImporter {
 
             return finalFile.getAbsolutePath();
         } catch (Exception e) {
-            Log.e(TAG, "Failed to decode/save photo " + rawPhotoId, e);
+            logError(TAG, "Failed to decode/save photo " + rawPhotoId, e);
             return null;
         }
     }
@@ -647,6 +662,39 @@ public class BrunqBackupImporter {
             }
         } catch (Exception e) {
             return def;
+        }
+    }
+
+    public static String readSafeString(JsonReader reader, String def) {
+        try {
+            JsonToken token = reader.peek();
+            if (token == JsonToken.STRING || token == JsonToken.NUMBER) {
+                return reader.nextString();
+            } else if (token == JsonToken.BOOLEAN) {
+                return String.valueOf(reader.nextBoolean());
+            } else {
+                reader.skipValue();
+                return def;
+            }
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    private static void logWarn(String tag, String msg) {
+        try {
+            Log.w(tag, msg);
+        } catch (Throwable t) {
+            System.out.println(tag + " [WARN]: " + msg);
+        }
+    }
+
+    private static void logError(String tag, String msg, Throwable tr) {
+        try {
+            Log.e(tag, msg, tr);
+        } catch (Throwable t) {
+            System.err.println(tag + " [ERROR]: " + msg);
+            if (tr != null) tr.printStackTrace();
         }
     }
 

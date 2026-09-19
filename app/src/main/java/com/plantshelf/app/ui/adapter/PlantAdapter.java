@@ -26,6 +26,7 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
 
     public interface OnPlantClickListener {
         void onPlantClick(PlantEntity plant);
+        void onPlantLongClick(PlantEntity plant);
         void onQuickWater(PlantEntity plant);
         void onQuickMist(PlantEntity plant);
     }
@@ -139,6 +140,14 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         // Click listeners
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onPlantClick(plant);
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            if (listener != null) {
+                listener.onPlantLongClick(plant);
+                return true;
+            }
+            return false;
         });
 
         holder.binding.btnQuickWater.setOnClickListener(v -> {

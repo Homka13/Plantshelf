@@ -7,6 +7,8 @@ import androidx.room.PrimaryKey;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -376,29 +378,29 @@ public class PlantEntity {
      * Negative number: days overdue.
      */
     public int getDaysUntilWatering() {
-        if (lastWatered == null || lastWatered.isEmpty()) {
+        if (lastWatered == null || lastWatered.trim().isEmpty()) {
             return 0; // Needs watering immediately
         }
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         try {
-            Date lastDate = sdf.parse(lastWatered);
-            if (lastDate == null) return 0;
+            String dateStr = lastWatered.trim();
+            if (dateStr.length() > 10) {
+                dateStr = dateStr.substring(0, 10);
+            }
+            LocalDate lastDate = LocalDate.parse(dateStr);
+            LocalDate today = LocalDate.now();
 
-            Calendar now = Calendar.getInstance();
-            int month = now.get(Calendar.MONTH); // 0-indexed, 11 is Dec, 0 is Jan, 1 is Feb
-            boolean isWinter = (month == Calendar.DECEMBER || month == Calendar.JANUARY || month == Calendar.FEBRUARY);
+            int month = today.getMonthValue(); // 1 to 12
+            boolean isWinter = (month == 12 || month == 1 || month == 2);
 
             int interval = isWinter ? getIntervalDaysWinter() : getIntervalDays();
+            if (interval <= 0) {
+                interval = 7;
+            }
 
-            Calendar nextWater = Calendar.getInstance();
-            nextWater.setTime(lastDate);
-            nextWater.add(Calendar.DAY_OF_YEAR, interval);
-
-            // Compare calendar days
-            long diffMillis = nextWater.getTimeInMillis() - now.getTimeInMillis();
-            return (int) Math.round((double) diffMillis / (24.0 * 60.0 * 60.0 * 1000.0));
-        } catch (ParseException e) {
+            LocalDate nextWater = lastDate.plusDays(interval);
+            return (int) ChronoUnit.DAYS.between(today, nextWater);
+        } catch (Exception e) {
             return 0;
         }
     }

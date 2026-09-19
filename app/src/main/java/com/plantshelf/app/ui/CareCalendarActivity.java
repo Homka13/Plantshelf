@@ -19,6 +19,8 @@ import com.plantshelf.app.ui.adapter.CalendarTaskAdapter;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -160,33 +162,34 @@ public class CareCalendarActivity extends AppCompatActivity {
         if (plant.isQuarantined()) return false;
 
         String lastWatered = plant.getLastWatered();
-        if (lastWatered == null || lastWatered.isEmpty()) {
+        if (lastWatered == null || lastWatered.trim().isEmpty()) {
             // Never watered -> due today
             return isTargetToday;
         }
 
         try {
-            Date lastDate = dateFormat.parse(lastWatered);
-            if (lastDate == null) return false;
+            String dateStr = lastWatered.trim();
+            if (dateStr.length() > 10) dateStr = dateStr.substring(0, 10);
+            LocalDate lastDate = LocalDate.parse(dateStr);
+            LocalDate targetDate = LocalDate.parse(targetDateStr);
 
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(lastDate);
-
-            int month = cal.get(Calendar.MONTH);
-            boolean isWinter = (month == Calendar.DECEMBER || month == Calendar.JANUARY || month == Calendar.FEBRUARY);
+            int month = targetDate.getMonthValue();
+            boolean isWinter = (month == 12 || month == 1 || month == 2);
             int interval = isWinter ? plant.getIntervalDaysWinter() : plant.getIntervalDays();
-            cal.add(Calendar.DAY_OF_YEAR, interval);
+            if (interval <= 0) interval = 7;
 
-            String dueDateStr = dateFormat.format(cal.getTime());
+            LocalDate firstDueDate = lastDate.plusDays(interval);
 
             if (isTargetToday) {
                 // If checking today, include overdue tasks
-                return dueDateStr.compareTo(targetDateStr) <= 0;
+                return !targetDate.isBefore(firstDueDate);
+            } else if (targetDate.isBefore(firstDueDate)) {
+                return false;
             } else {
-                // For future or past specific date
-                return dueDateStr.equals(targetDateStr);
+                long daysDiff = ChronoUnit.DAYS.between(firstDueDate, targetDate);
+                return (daysDiff % interval) == 0;
             }
-        } catch (ParseException e) {
+        } catch (Exception e) {
             return false;
         }
     }
@@ -197,23 +200,25 @@ public class CareCalendarActivity extends AppCompatActivity {
         if (fertInterval <= 0) return false;
 
         String lastFert = plant.getLastFert();
-        if (lastFert == null || lastFert.isEmpty()) return false;
+        if (lastFert == null || lastFert.trim().isEmpty()) return false;
 
         try {
-            Date lastDate = dateFormat.parse(lastFert);
-            if (lastDate == null) return false;
+            String dateStr = lastFert.trim();
+            if (dateStr.length() > 10) dateStr = dateStr.substring(0, 10);
+            LocalDate lastDate = LocalDate.parse(dateStr);
+            LocalDate targetDate = LocalDate.parse(targetDateStr);
 
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(lastDate);
-            cal.add(Calendar.DAY_OF_YEAR, fertInterval);
+            LocalDate firstDueDate = lastDate.plusDays(fertInterval);
 
-            String dueDateStr = dateFormat.format(cal.getTime());
             if (isTargetToday) {
-                return dueDateStr.compareTo(targetDateStr) <= 0;
+                return !targetDate.isBefore(firstDueDate);
+            } else if (targetDate.isBefore(firstDueDate)) {
+                return false;
             } else {
-                return dueDateStr.equals(targetDateStr);
+                long daysDiff = ChronoUnit.DAYS.between(firstDueDate, targetDate);
+                return (daysDiff % fertInterval) == 0;
             }
-        } catch (ParseException e) {
+        } catch (Exception e) {
             return false;
         }
     }

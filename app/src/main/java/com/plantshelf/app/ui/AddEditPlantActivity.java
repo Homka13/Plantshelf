@@ -31,23 +31,62 @@ import com.plantshelf.app.ui.dialog.ApiKeyDialog;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 public class AddEditPlantActivity extends AppCompatActivity {
+
+    public static final String EXTRA_PLANT_ID = "extra_plant_id";
 
     private ActivityAddEditPlantBinding binding;
     private PlantRepository repository;
     private final List<CategoryEntity> categoryList = new ArrayList<>();
     private ArrayAdapter<String> spinnerAdapter;
 
+    private String editingPlantId = null;
+    private PlantEntity editingPlant = null;
+    private boolean isPlantLoaded = false;
+
     private String selectedPhotoPath = null;
     private Uri cameraTempUri = null;
     private File cameraTempFile = null;
+
+    /**
+     * Bundles all plant form fields into a single object,
+     * avoiding methods with more than 7 parameters.
+     */
+    private static final class PlantFormData {
+        final String name;
+        final String variety;
+        final String latin;
+        final String soil;
+        final String warning;
+        final String notes;
+        final String categoryId;
+        final int summerInterval;
+        final int winterInterval;
+        final int lux;
+        final String today;
+
+        PlantFormData(String name, String variety, String latin, String soil, String warning,
+                      String notes, String categoryId, int summerInterval, int winterInterval,
+                      int lux, String today) {
+            this.name           = name;
+            this.variety        = variety;
+            this.latin          = latin;
+            this.soil           = soil;
+            this.warning        = warning;
+            this.notes          = notes;
+            this.categoryId     = categoryId;
+            this.summerInterval = summerInterval;
+            this.winterInterval = winterInterval;
+            this.lux            = lux;
+            this.today          = today;
+        }
+    }
 
     // Gallery Picker Launcher
     private final ActivityResultLauncher<String> galleryLauncher = registerForActivityResult(
@@ -81,12 +120,68 @@ public class AddEditPlantActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
+        editingPlantId = getIntent().getStringExtra(EXTRA_PLANT_ID);
+        boolean isEditMode = editingPlantId != null && !editingPlantId.isEmpty();
+        if (isEditMode) {
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle(R.string.edit_plant_title);
+            }
+            binding.btnSavePlant.setText(R.string.btn_save_changes);
+        }
+
         repository = new PlantRepository(getApplication());
 
         setupCategorySpinner();
         setupPhotoButtons();
         setupAiIdentification();
         setupSaveButton();
+
+        if (isEditMode) {
+            loadPlantForEditing();
+        }
+    }
+
+    private void loadPlantForEditing() {
+        repository.getPlantById(editingPlantId).observe(this, plant -> {
+            if (plant != null && !isPlantLoaded) {
+                isPlantLoaded = true;
+                editingPlant = plant;
+                populateFields(plant);
+            }
+        });
+    }
+
+    /** Fills all form fields from an existing {@link PlantEntity}. */
+    private void populateFields(PlantEntity plant) {
+        binding.etPlantName.setText(plant.getName());
+        binding.etPlantVariety.setText(plant.getVariety() != null ? plant.getVariety() : "");
+        binding.etPlantLatin.setText(plant.getLatin() != null ? plant.getLatin() : "");
+        binding.etSoil.setText(plant.getSoil() != null ? plant.getSoil() : "");
+        binding.etWarning.setText(plant.getWarning() != null ? plant.getWarning() : "");
+        binding.etNotes.setText(plant.getNote() != null ? plant.getNote() : "");
+        binding.etIntervalSummer.setText(String.valueOf(plant.getIntervalDays()));
+        binding.etIntervalWinter.setText(String.valueOf(plant.getIntervalDaysWinter()));
+        binding.etTargetLux.setText(String.valueOf(plant.getLux()));
+
+        selectedPhotoPath = plant.getPrimaryPhotoPath();
+        if (selectedPhotoPath != null && new File(selectedPhotoPath).exists()) {
+            displayPhotoPreview(selectedPhotoPath);
+        }
+
+        updateCategorySpinnerSelection(plant.getCategoryId());
+    }
+
+    private void updateCategorySpinnerSelection(String categoryId) {
+        if (categoryId == null || categoryList.isEmpty()) {
+            binding.spinnerCategories.setSelection(0);
+            return;
+        }
+        for (int i = 0; i < categoryList.size(); i++) {
+            if (categoryId.equals(categoryList.get(i).getId())) {
+                binding.spinnerCategories.setSelection(i + 1);
+                break;
+            }
+        }
     }
 
     private void setupCategorySpinner() {
@@ -107,6 +202,10 @@ public class AddEditPlantActivity extends AppCompatActivity {
             spinnerAdapter.clear();
             spinnerAdapter.addAll(names);
             spinnerAdapter.notifyDataSetChanged();
+
+            if (editingPlant != null) {
+                updateCategorySpinnerSelection(editingPlant.getCategoryId());
+            }
         });
     }
 
@@ -187,28 +286,14 @@ public class AddEditPlantActivity extends AppCompatActivity {
         binding.btnAiIdentify.setEnabled(false);
         Toast.makeText(this, R.string.ai_identifying, Toast.LENGTH_SHORT).show();
 
-        GeminiPlantAiService.identifyPlantByPhoto(this, new File(imagePath), new GeminiPlantAiService.AiAnalysisCallback() {
+        GeminiPlantAiService.identifyPlantByPhoto(this, new File(imagePath),
+                new GeminiPlantAiService.AiAnalysisCallback() {
             @Override
             public void onSuccess(com.plantshelf.app.data.ai.AiPlantAnalysisResult result) {
                 runOnUiThread(() -> {
                     binding.progressAi.setVisibility(View.GONE);
                     binding.btnAiIdentify.setEnabled(true);
-
-                    if (result != null) {
-                        if (!result.getName().isEmpty()) binding.etPlantName.setText(result.getName());
-                        if (!result.getVariety().isEmpty()) binding.etPlantVariety.setText(result.getVariety());
-                        if (!result.getLatin().isEmpty()) binding.etPlantLatin.setText(result.getLatin());
-
-                        binding.etIntervalSummer.setText(String.valueOf(result.getIntervalDaysSummer()));
-                        binding.etIntervalWinter.setText(String.valueOf(result.getIntervalDaysWinter()));
-                        binding.etTargetLux.setText(String.valueOf(result.getLux()));
-
-                        if (!result.getSoil().isEmpty()) binding.etSoil.setText(result.getSoil());
-                        if (!result.getWarning().isEmpty()) binding.etWarning.setText(result.getWarning());
-                        if (!result.getNotes().isEmpty()) binding.etNotes.setText(result.getNotes());
-
-                        Toast.makeText(AddEditPlantActivity.this, R.string.ai_success, Toast.LENGTH_LONG).show();
-                    }
+                    if (result != null) applyAiResult(result);
                 });
             }
 
@@ -217,77 +302,156 @@ public class AddEditPlantActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     binding.progressAi.setVisibility(View.GONE);
                     binding.btnAiIdentify.setEnabled(true);
-                    String msg = getString(R.string.ai_error, e.getMessage());
-                    Toast.makeText(AddEditPlantActivity.this, msg, Toast.LENGTH_LONG).show();
+                    Toast.makeText(AddEditPlantActivity.this,
+                            getString(R.string.ai_error, e.getMessage()), Toast.LENGTH_LONG).show();
                 });
             }
         });
     }
 
+    /** Fills form fields with the AI-identified plant data. */
+    private void applyAiResult(com.plantshelf.app.data.ai.AiPlantAnalysisResult result) {
+        if (!result.getName().isEmpty())    binding.etPlantName.setText(result.getName());
+        if (!result.getVariety().isEmpty()) binding.etPlantVariety.setText(result.getVariety());
+        if (!result.getLatin().isEmpty())   binding.etPlantLatin.setText(result.getLatin());
+
+        binding.etIntervalSummer.setText(String.valueOf(result.getIntervalDaysSummer()));
+        binding.etIntervalWinter.setText(String.valueOf(result.getIntervalDaysWinter()));
+        binding.etTargetLux.setText(String.valueOf(result.getLux()));
+
+        if (!result.getSoil().isEmpty())    binding.etSoil.setText(result.getSoil());
+        if (!result.getWarning().isEmpty()) binding.etWarning.setText(result.getWarning());
+        if (!result.getNotes().isEmpty())   binding.etNotes.setText(result.getNotes());
+
+        Toast.makeText(this, R.string.ai_success, Toast.LENGTH_LONG).show();
+    }
+
     private void setupSaveButton() {
         binding.btnSavePlant.setOnClickListener(v -> {
-            String name = binding.etPlantName.getText() != null ? binding.etPlantName.getText().toString().trim() : "";
+            String name = getText(binding.etPlantName);
             if (name.isEmpty()) {
                 binding.etPlantName.setError("Введіть назву рослини");
                 return;
             }
-
-            String variety = binding.etPlantVariety.getText() != null ? binding.etPlantVariety.getText().toString().trim() : "";
-            String latin = binding.etPlantLatin.getText() != null ? binding.etPlantLatin.getText().toString().trim() : "";
-            String soil = binding.etSoil.getText() != null ? binding.etSoil.getText().toString().trim() : "";
-            String warning = binding.etWarning.getText() != null ? binding.etWarning.getText().toString().trim() : "";
-            String notes = binding.etNotes.getText() != null ? binding.etNotes.getText().toString().trim() : "";
-
-            int summerInterval = 7;
-            try {
-                summerInterval = Integer.parseInt(binding.etIntervalSummer.getText().toString().trim());
-            } catch (Exception ignored) {}
-
-            int winterInterval = summerInterval;
-            try {
-                winterInterval = Integer.parseInt(binding.etIntervalWinter.getText().toString().trim());
-            } catch (Exception ignored) {}
-
-            int targetLux = 10000;
-            try {
-                targetLux = Integer.parseInt(binding.etTargetLux.getText().toString().trim());
-            } catch (Exception ignored) {}
-
-            String selectedCategoryId = null;
-            int spinnerPos = binding.spinnerCategories.getSelectedItemPosition();
-            if (spinnerPos > 0 && spinnerPos - 1 < categoryList.size()) {
-                selectedCategoryId = categoryList.get(spinnerPos - 1).getId();
-            }
-
-            String plantId = UUID.randomUUID().toString().substring(0, 8);
-            PlantEntity plant = new PlantEntity(plantId);
-            plant.setName(name);
-            plant.setVariety(variety);
-            plant.setLatin(latin);
-            plant.setSoil(soil);
-            plant.setWarning(warning);
-            plant.setNote(notes);
-            plant.setCategoryId(selectedCategoryId);
-            plant.setIntervalDays(summerInterval);
-            plant.setIntervalDaysWinter(winterInterval);
-            plant.setLux(targetLux);
-            plant.setPrimaryPhotoPath(selectedPhotoPath);
-
-            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-            plant.setLastWatered(today);
-            plant.setCreatedAt(today);
-
-            repository.insertPlant(plant);
-
-            if (selectedPhotoPath != null) {
-                String photoId = UUID.randomUUID().toString().substring(0, 8);
-                PhotoEntity photo = new PhotoEntity(photoId, plantId, today, selectedPhotoPath);
-                new Thread(() -> PlantshelfDatabase.getInstance(this).photoDao().insert(photo)).start();
-            }
-
-            Toast.makeText(this, "Рослину додано!", Toast.LENGTH_SHORT).show();
-            finish();
+            savePlant(name);
         });
+    }
+
+    /** Reads all text fields and delegates to update or insert path. */
+    private void savePlant(String name) {
+        String variety = getText(binding.etPlantVariety);
+        String latin   = getText(binding.etPlantLatin);
+        String soil    = getText(binding.etSoil);
+        String warning = getText(binding.etWarning);
+        String notes   = getText(binding.etNotes);
+
+        int summerInterval = parseIntField(binding.etIntervalSummer, 7);
+        int winterInterval = parseIntField(binding.etIntervalWinter, summerInterval);
+        int targetLux      = parseIntField(binding.etTargetLux, 10000);
+
+        String selectedCategoryId = null;
+        int spinnerPos = binding.spinnerCategories.getSelectedItemPosition();
+        if (spinnerPos > 0 && spinnerPos - 1 < categoryList.size()) {
+            selectedCategoryId = categoryList.get(spinnerPos - 1).getId();
+        }
+
+        String today = LocalDate.now(ZoneId.systemDefault()).toString();
+
+        PlantFormData data = new PlantFormData(name, variety, latin, soil, warning, notes,
+                selectedCategoryId, summerInterval, winterInterval, targetLux, today);
+
+        if (editingPlant != null) {
+            updateExistingPlant(data);
+        } else {
+            saveNewPlant(data);
+        }
+    }
+
+    /** Applies edited field values to the existing plant and persists changes. */
+    private void updateExistingPlant(PlantFormData d) {
+        editingPlant.setName(d.name);
+        editingPlant.setVariety(d.variety);
+        editingPlant.setLatin(d.latin);
+        editingPlant.setSoil(d.soil);
+        editingPlant.setWarning(d.warning);
+        editingPlant.setNote(d.notes);
+        editingPlant.setCategoryId(d.categoryId);
+        editingPlant.setIntervalDays(d.summerInterval);
+        editingPlant.setIntervalDaysWinter(d.winterInterval);
+        editingPlant.setLux(d.lux);
+
+        boolean photoChanged = selectedPhotoPath != null
+                && !selectedPhotoPath.equals(editingPlant.getPrimaryPhotoPath());
+        if (selectedPhotoPath != null) {
+            editingPlant.setPrimaryPhotoPath(selectedPhotoPath);
+        }
+
+        repository.updatePlant(editingPlant);
+
+        if (photoChanged) {
+            addPhotoRecord(editingPlant.getId(), d.today, selectedPhotoPath);
+        }
+
+        Toast.makeText(this, R.string.plant_updated_success, Toast.LENGTH_SHORT).show();
+        finish();
+    }
+
+    /** Creates and inserts a new plant entity. */
+    private void saveNewPlant(PlantFormData d) {
+        String plantId = UUID.randomUUID().toString().substring(0, 8);
+        PlantEntity plant = new PlantEntity(plantId);
+        plant.setName(d.name);
+        plant.setVariety(d.variety);
+        plant.setLatin(d.latin);
+        plant.setSoil(d.soil);
+        plant.setWarning(d.warning);
+        plant.setNote(d.notes);
+        plant.setCategoryId(d.categoryId);
+        plant.setIntervalDays(d.summerInterval);
+        plant.setIntervalDaysWinter(d.winterInterval);
+        plant.setLux(d.lux);
+        plant.setPrimaryPhotoPath(selectedPhotoPath);
+        plant.setLastWatered(d.today);
+        plant.setCreatedAt(d.today);
+
+        repository.insertPlant(plant);
+
+        if (selectedPhotoPath != null) {
+            addPhotoRecord(plantId, d.today, selectedPhotoPath);
+        }
+
+        Toast.makeText(this, "Рослину додано!", Toast.LENGTH_SHORT).show();
+        finish();
+    }
+
+    /** Inserts a PhotoEntity record on a background thread. */
+    private void addPhotoRecord(String plantId, String date, String path) {
+        String photoId = UUID.randomUUID().toString().substring(0, 8);
+        PhotoEntity photo = new PhotoEntity(photoId, plantId, date, path);
+        new Thread(() -> PlantshelfDatabase.getInstance(this).photoDao().insert(photo)).start();
+    }
+
+    /** Safe text extraction from an EditText — never returns null. */
+    private String getText(android.widget.EditText et) {
+        return et.getText() != null ? et.getText().toString().trim() : "";
+    }
+
+    /** Parses an integer from an EditText, returning {@code fallback} if the field is blank or invalid. */
+    private int parseIntField(android.widget.EditText et, int fallback) {
+        try {
+            return Integer.parseInt(et.getText().toString().trim());
+        } catch (NumberFormatException ignored) {
+            // Field is empty or non-numeric — use the provided fallback value
+            return fallback;
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        if (editingPlantId != null && !editingPlantId.isEmpty()) {
+            getMenuInflater().inflate(R.menu.add_edit_plant_menu, menu);
+        }
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -295,7 +459,24 @@ public class AddEditPlantActivity extends AppCompatActivity {
         if (item.getItemId() == android.R.id.home) {
             finish();
             return true;
+        } else if (item.getItemId() == R.id.action_delete_plant) {
+            confirmDeleteEditingPlant();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void confirmDeleteEditingPlant() {
+        if (editingPlant == null) return;
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.delete_plant_title)
+                .setMessage(getString(R.string.delete_plant_confirm_message, editingPlant.getName()))
+                .setPositiveButton(R.string.btn_delete, (dialog, which) -> {
+                    repository.deletePlant(editingPlant);
+                    Toast.makeText(this, R.string.plant_deleted_success, Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
     }
 }

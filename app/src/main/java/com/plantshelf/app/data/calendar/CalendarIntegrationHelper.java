@@ -160,7 +160,11 @@ public class CalendarIntegrationHelper {
         shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Графік догляду за рослинами Plantshelf");
         shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        context.startActivity(Intent.createChooser(shareIntent, "Експортувати розклад догляду"));
+        Intent chooser = Intent.createChooser(shareIntent, "Експортувати розклад догляду");
+        if (!(context instanceof android.app.Activity)) {
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        context.startActivity(chooser);
         return icsFile;
     }
 

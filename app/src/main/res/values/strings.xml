@@ -124,4 +124,18 @@
     <string name="update_dialog_btn_download">Завантажити та встановити</string>
     <string name="update_downloading">Завантаження оновлення...</string>
     <string name="update_download_failed">Помилка завантаження оновлення: %1$s</string>
+
+    <!-- Plant Actions -->
+    <string name="btn_edit">Редагувати</string>
+    <string name="btn_delete">Видалити</string>
+    <string name="delete_plant_title">Видалити рослину?</string>
+    <string name="delete_plant_confirm_message">Ви впевнені, що хочете видалити «%1$s»? Всі фото та історію догляду буде видалено безповоротно.</string>
+    <string name="plant_deleted_success">Рослину видалено</string>
+    <string name="edit_plant_title">Редагувати рослину</string>
+    <string name="btn_save_changes">Зберегти зміни</string>
+    <string name="plant_updated_success">Зміни збережено!</string>
+
+    <!-- Update Snackbar -->
+    <string name="update_snackbar_message">Доступне оновлення %1$s 🌱</string>
+    <string name="update_snackbar_action">Оновити</string>
 </resources>

@@ -34,22 +34,21 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Model Name Input -->
+    <!-- Model Selection Dropdown -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilModel"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="Модель Gemini (за замовчуванням gemini-flash-latest)"
-        app:endIconMode="clear_text"
-        app:helperText="Рекомендовано: gemini-flash-latest, gemini-2.5-flash, gemini-3.5-flash">
+        android:hint="Модель Gemini"
+        app:helperText="Оберіть зі списку або введіть назву моделі">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etModel"
+        <AutoCompleteTextView
+            android:id="@+id/actvModel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textUri" />
+            android:inputType="text" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

@@ -21,18 +21,58 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Pure Java service communicating directly with Google Gemini 1.5/2.0 Flash API
+ * Pure Java service communicating directly with Google Gemini Flash / Pro API
  * to identify houseplants by photo or name, and extract structured care requirements.
  */
 public class GeminiPlantAiService {
+
+    public static class GeminiModelInfo {
+        private final String modelId;
+        private final String displayName;
+
+        public GeminiModelInfo(String modelId, String displayName) {
+            this.modelId = modelId;
+            this.displayName = displayName;
+        }
+
+        public String getModelId() {
+            return modelId;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName + " (" + modelId + ")";
+        }
+    }
 
     private static final String TAG = "GeminiPlantAiService";
     private static final String PREFS_NAME = "plantshelf_ai_prefs";
     private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
     public static final String KEY_GEMINI_MODEL = "gemini_model";
-    public static final String DEFAULT_MODEL = "gemini-flash-latest";
+    public static final String DEFAULT_MODEL = "gemini-3.8-flash";
+
+    public static final List<GeminiModelInfo> AVAILABLE_MODELS = Arrays.asList(
+            new GeminiModelInfo("gemini-3.8-flash", "Gemini 3.8 Flash (Нова стабільна)"),
+            new GeminiModelInfo("gemini-3.7-flash", "Gemini 3.7 Flash"),
+            new GeminiModelInfo("gemini-3.6-flash", "Gemini 3.6 Flash"),
+            new GeminiModelInfo("gemini-3.5-flash", "Gemini 3.5 Flash"),
+            new GeminiModelInfo("gemini-3.5-flash-lite", "Gemini 3.5 Flash-Lite"),
+            new GeminiModelInfo("gemini-3.1-flash-lite", "Gemini 3.1 Flash-Lite"),
+            new GeminiModelInfo("gemini-3.1-pro-preview", "Gemini 3.1 Pro (Preview)"),
+            new GeminiModelInfo("gemini-3-flash-preview", "Gemini 3 Flash (Preview)"),
+            new GeminiModelInfo("gemini-2.5-flash", "Gemini 2.5 Flash"),
+            new GeminiModelInfo("gemini-2.5-flash-lite", "Gemini 2.5 Flash-Lite"),
+            new GeminiModelInfo("gemini-2.5-pro", "Gemini 2.5 Pro"),
+            new GeminiModelInfo("gemini-flash-latest", "Gemini Flash Latest (Автооновлення)")
+    );
 
     public interface AiAnalysisCallback {
         void onSuccess(AiPlantAnalysisResult result);

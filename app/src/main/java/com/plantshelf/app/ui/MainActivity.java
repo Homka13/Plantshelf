@@ -63,9 +63,9 @@ public class MainActivity extends AppCompatActivity {
         observeData();
         setupListeners();
 
-        // Check for updates from GitHub in background (only on cold start, at most once per 24 hours)
-        if (savedInstanceState == null && com.plantshelf.app.updater.GitHubUpdateManager.shouldPerformPeriodicCheck(this)) {
-            com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdates(this, false);
+        // Check for updates on every cold start — shows a subtle Snackbar if a newer version is available
+        if (savedInstanceState == null) {
+            com.plantshelf.app.updater.GitHubUpdateManager.checkForUpdatesOnLaunch(this, binding.getRoot());
         }
     }
 
@@ -82,6 +82,11 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(MainActivity.this, PlantDetailActivity.class);
                 intent.putExtra(PlantDetailActivity.EXTRA_PLANT_ID, plant.getId());
                 startActivity(intent);
+            }
+
+            @Override
+            public void onPlantLongClick(PlantEntity plant) {
+                showPlantOptionsDialog(plant);
             }
 
             @Override
@@ -135,14 +140,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        binding.chipQuarantine.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            viewModel.setQuarantineFilter(isChecked);
-        });
+        binding.chipQuarantine.setOnCheckedChangeListener((buttonView, isChecked) ->
+                viewModel.setQuarantineFilter(isChecked));
 
-        binding.swipeRefresh.setOnRefreshListener(() -> {
-            // Re-trigger category selection to refresh
-            viewModel.selectCategory(viewModel.getSelectedCategoryId());
-        });
+        binding.swipeRefresh.setOnRefreshListener(() ->
+                // Re-trigger category selection to refresh
+                viewModel.selectCategory(viewModel.getSelectedCategoryId()));
 
         binding.fabAddPlant.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, AddEditPlantActivity.class);
@@ -265,17 +268,43 @@ public class MainActivity extends AppCompatActivity {
         BackupExporter.exportToFile(this, backupFile, new BackupExporter.ExportCallback() {
             @Override
             public void onSuccess(File exportedFile) {
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Бекап збережено: " + exportedFile.getName(), Toast.LENGTH_LONG).show();
-                });
+                runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this, "Бекап збережено: " + exportedFile.getName(), Toast.LENGTH_LONG).show());
             }
 
             @Override
             public void onError(Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Помилка експорту: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+                runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this, "Помилка експорту: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         });
+    }
+
+    private void showPlantOptionsDialog(PlantEntity plant) {
+        String[] options = {getString(R.string.btn_edit), getString(R.string.btn_delete)};
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(plant.getName())
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        Intent intent = new Intent(MainActivity.this, AddEditPlantActivity.class);
+                        intent.putExtra(AddEditPlantActivity.EXTRA_PLANT_ID, plant.getId());
+                        startActivity(intent);
+                    } else if (which == 1) {
+                        confirmDeletePlant(plant);
+                    }
+                })
+                .show();
+    }
+
+    private void confirmDeletePlant(PlantEntity plant) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.delete_plant_title)
+                .setMessage(getString(R.string.delete_plant_confirm_message, plant.getName()))
+                .setPositiveButton(R.string.btn_delete, (dialog, which) -> {
+                    viewModel.deletePlant(plant);
+                    Snackbar.make(binding.getRoot(), R.string.plant_deleted_success, Snackbar.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
     }
 }

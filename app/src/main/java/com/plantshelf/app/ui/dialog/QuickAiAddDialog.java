@@ -18,6 +18,7 @@ import com.plantshelf.app.data.ai.GeminiPlantAiService;
 import com.plantshelf.app.data.database.PlantshelfDatabase;
 import com.plantshelf.app.data.entity.CategoryEntity;
 import com.plantshelf.app.data.entity.PlantEntity;
+import com.plantshelf.app.widget.PlantCareWidgetProvider;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -56,10 +57,15 @@ public class QuickAiAddDialog {
 
         new Thread(() -> {
             List<CategoryEntity> dbCats = PlantshelfDatabase.getInstance(context).categoryDao().getAllCategoriesSync();
-            if (dbCats != null) {
-                categories.addAll(dbCats);
-                for (CategoryEntity c : dbCats) {
-                    catNames.add(c.getName());
+            if (dbCats != null && !dbCats.isEmpty()) {
+                if (context instanceof android.app.Activity) {
+                    ((android.app.Activity) context).runOnUiThread(() -> {
+                        categories.addAll(dbCats);
+                        for (CategoryEntity c : dbCats) {
+                            catNames.add(c.getName());
+                        }
+                        spinnerAdapter.notifyDataSetChanged();
+                    });
                 }
             }
         }).start();
@@ -119,6 +125,7 @@ public class QuickAiAddDialog {
                     plant.setCreatedAt(today);
 
                     PlantshelfDatabase.getInstance(context).plantDao().insert(plant);
+                    PlantCareWidgetProvider.sendUpdateBroadcast(context);
 
                     if (context instanceof android.app.Activity) {
                         ((android.app.Activity) context).runOnUiThread(() -> {
