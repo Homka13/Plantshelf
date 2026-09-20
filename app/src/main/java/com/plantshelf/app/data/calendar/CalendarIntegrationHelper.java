@@ -35,6 +35,7 @@ import java.util.TimeZone;
 public class CalendarIntegrationHelper {
 
     private static final String TAG = "CalendarHelper";
+    public static final String ID_TAG_PREFIX = "Plantshelf_ID:";
 
     public static boolean hasCalendarPermission(Context context) {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED;
@@ -45,20 +46,42 @@ public class CalendarIntegrationHelper {
         String[] projection = new String[]{
                 CalendarContract.Calendars._ID,
                 CalendarContract.Calendars.IS_PRIMARY,
-                CalendarContract.Calendars.VISIBLE
+                CalendarContract.Calendars.VISIBLE,
+                CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
+                CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+                CalendarContract.Calendars.NAME
         };
+        String selection = CalendarContract.Calendars.VISIBLE + " = 1 AND "
+                + CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL + " >= "
+                + CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR;
         try (Cursor cursor = context.getContentResolver().query(
                 CalendarContract.Calendars.CONTENT_URI,
                 projection,
-                null,
+                selection,
                 null,
                 CalendarContract.Calendars.IS_PRIMARY + " DESC, " + CalendarContract.Calendars._ID + " ASC"
         )) {
-            if (cursor != null && cursor.moveToFirst()) {
-                return cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Calendars._ID));
+            if (cursor != null) {
+                Long primaryOrFirstId = null;
+                while (cursor.moveToNext()) {
+                    long id = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Calendars._ID));
+                    int colDisp = cursor.getColumnIndex(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME);
+                    int colName = cursor.getColumnIndex(CalendarContract.Calendars.NAME);
+                    String displayName = colDisp != -1 ? cursor.getString(colDisp) : null;
+                    String name = colName != -1 ? cursor.getString(colName) : null;
+
+                    // Priority 1: A dedicated "Plantshelf" calendar if present
+                    if ("Plantshelf".equalsIgnoreCase(displayName) || "Plantshelf".equalsIgnoreCase(name)) {
+                        return id;
+                    }
+                    if (primaryOrFirstId == null) {
+                        primaryOrFirstId = id;
+                    }
+                }
+                return primaryOrFirstId;
             }
         } catch (Exception e) {
-            Log.w(TAG, "Could not query calendars", e);
+            Log.w(TAG, "Could not query writable calendars", e);
         }
         return null;
     }
@@ -82,7 +105,85 @@ public class CalendarIntegrationHelper {
     }
 
     /**
+     * Removes associated calendar events for a deleted plant:
+     * 1. Automatically removes the event using the stored calendarEventId.
+     * 2. Runs a fallback lookup using 'Plantshelf_ID:' tags in event descriptions to ensure
+     *    any orphaned or untracked events for this plant are also deleted.
+     *
+     * @param context Context
+     * @param plant The plant being removed
+     * @return Total number of calendar events deleted
+     */
+    public static int deletePlantCalendarEvents(Context context, PlantEntity plant) {
+        if (context == null || plant == null || !hasCalendarPermission(context)) {
+            return 0;
+        }
+
+        int deletedCount = 0;
+        String calendarEventId = plant.getCalendarEventId();
+
+        // 1. Direct deletion using stored calendarEventId
+        if (calendarEventId != null && !calendarEventId.trim().isEmpty()) {
+            try {
+                long eventId = Long.parseLong(calendarEventId.trim());
+                Uri eventUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
+                int rows = context.getContentResolver().delete(eventUri, null, null);
+                if (rows > 0) {
+                    deletedCount += rows;
+                    Log.d(TAG, "Deleted calendar event with stored calendarEventId: " + calendarEventId + " (" + rows + " row(s))");
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed deleting event with calendarEventId: " + calendarEventId, e);
+            }
+        }
+
+        // 2. Fallback lookup using 'Plantshelf_ID:' tags in event descriptions restricted to CALENDAR_ID
+        Long calendarId = findPrimaryCalendarId(context);
+        if (calendarId != null) {
+            try {
+                String plantId = plant.getId();
+                String escapedTag = ID_TAG_PREFIX.replace("_", "\\_");
+                String selection = CalendarContract.Events.CALENDAR_ID + " = ? AND ("
+                        + CalendarContract.Events.DESCRIPTION + " LIKE ? ESCAPE '\\' OR "
+                        + CalendarContract.Events.DESCRIPTION + " LIKE ? ESCAPE '\\')";
+                String[] selectionArgs = new String[]{
+                        String.valueOf(calendarId),
+                        "%" + escapedTag + plantId + "\n%",
+                        "%" + escapedTag + " " + plantId + "\n%"
+                };
+
+                int fallbackRows = context.getContentResolver().delete(
+                        CalendarContract.Events.CONTENT_URI,
+                        selection,
+                        selectionArgs
+                );
+                if (fallbackRows > 0) {
+                    deletedCount += fallbackRows;
+                    Log.d(TAG, "Fallback deleted " + fallbackRows + " calendar event(s) using Plantshelf_ID tag for plant " + plantId);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Fallback calendar event deletion failed for plant " + plant.getId(), e);
+            }
+        }
+
+        return deletedCount;
+    }
+
+    /**
+     * Efficiently bulk synchronizes all plant events in the system calendar using
+     * ContentProviderOperation.applyBatch().
+     *
+     * @param context Application context
+     * @param plants List of plants to synchronize
+     * @return count of synchronized plants
+     */
+    public static int bulkSyncAllPlants(Context context, List<PlantEntity> plants) throws Exception {
+        return CalendarSyncManager.getInstance(context).syncAllPlantsBatchSync(plants);
+    }
+
+    /**
      * Updates an existing calendar event schedule when plant watering/fertilizing frequency changes.
+     * Recalculates DTSTART from the plant's next care schedule and removes static RRULE to stay in sync.
      */
     public static boolean updateCalendarEventSchedule(Context context, PlantEntity plant) {
         if (plant == null || plant.getCalendarEventId() == null || !hasCalendarPermission(context)) {
@@ -91,9 +192,21 @@ public class CalendarIntegrationHelper {
         try {
             long eventId = Long.parseLong(plant.getCalendarEventId());
             int interval = plant.getIntervalDays() > 0 ? plant.getIntervalDays() : 7;
+            Calendar startTime = Calendar.getInstance();
+            startTime.set(Calendar.HOUR_OF_DAY, 9);
+            startTime.set(Calendar.MINUTE, 0);
+            startTime.set(Calendar.SECOND, 0);
+
+            int daysLeft = plant.getDaysUntilWatering();
+            if (daysLeft > 0) {
+                startTime.add(Calendar.DAY_OF_YEAR, daysLeft);
+            }
+
             ContentValues values = new ContentValues();
             values.put(CalendarContract.Events.TITLE, "🌱 Полив: " + plant.getName());
-            values.put(CalendarContract.Events.RRULE, "FREQ=DAILY;INTERVAL=" + interval);
+            values.put(CalendarContract.Events.DTSTART, startTime.getTimeInMillis());
+            values.put(CalendarContract.Events.DTEND, startTime.getTimeInMillis() + (30 * 60 * 1000));
+            values.putNull(CalendarContract.Events.RRULE);
 
             String desc = "Рослина: " + plant.getName() + "\n";
             if (!plant.getVariety().isEmpty()) {
@@ -103,7 +216,11 @@ public class CalendarIntegrationHelper {
             if (plant.getSoil() != null && !plant.getSoil().isEmpty()) {
                 desc += "Ґрунт: " + plant.getSoil() + "\n";
             }
-            values.put(CalendarContract.Events.DESCRIPTION, desc + "\nОновлено у додатку Plantshelf");
+            if (plant.getEffectiveRecommendedFertilizers() != null && !plant.getEffectiveRecommendedFertilizers().isEmpty()) {
+                desc += "Добрива: " + plant.getEffectiveRecommendedFertilizers() + "\n";
+            }
+            desc += "\n" + ID_TAG_PREFIX + plant.getId() + "\nОновлено у додатку Plantshelf\n";
+            values.put(CalendarContract.Events.DESCRIPTION, desc);
 
             Uri eventUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
             int rows = context.getContentResolver().update(eventUri, values, null, null);
@@ -135,7 +252,7 @@ public class CalendarIntegrationHelper {
 
             if ("fert".equalsIgnoreCase(careType)) {
                 title = "🧪 Добрива: " + plant.getName();
-                interval = plant.getFertIntervalDays() > 0 ? plant.getFertIntervalDays() : 14;
+                interval = plant.getEffectiveFertilizeIntervalSummerDays();
                 desc += "Підживлення добривами кожні " + interval + " дн.\n";
             } else if ("mist".equalsIgnoreCase(careType)) {
                 title = "💧 Обприскування: " + plant.getName();
@@ -152,11 +269,10 @@ public class CalendarIntegrationHelper {
             ContentValues values = new ContentValues();
             values.put(CalendarContract.Events.CALENDAR_ID, calendarId);
             values.put(CalendarContract.Events.TITLE, title);
-            values.put(CalendarContract.Events.DESCRIPTION, desc + "\nСтворено у додатку Plantshelf");
+            values.put(CalendarContract.Events.DESCRIPTION, desc + "\n" + ID_TAG_PREFIX + plant.getId() + "\nСтворено у додатку Plantshelf\n");
             values.put(CalendarContract.Events.DTSTART, startTime.getTimeInMillis());
             values.put(CalendarContract.Events.DTEND, startTime.getTimeInMillis() + (30 * 60 * 1000));
             values.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().getID());
-            values.put(CalendarContract.Events.RRULE, "FREQ=DAILY;INTERVAL=" + interval);
             values.put(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_FREE);
 
             Uri uri = context.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, values);
@@ -222,7 +338,7 @@ public class CalendarIntegrationHelper {
         if (plant.getWarning() != null && !plant.getWarning().isEmpty()) {
             desc += "⚠️ " + plant.getWarning() + "\n";
         }
-        desc += "\nСтворено у додатку Plantshelf";
+        desc += "\n" + ID_TAG_PREFIX + plant.getId() + "\nСтворено у додатку Plantshelf";
 
         Intent intent = new Intent(Intent.ACTION_INSERT)
                 .setData(CalendarContract.Events.CONTENT_URI)

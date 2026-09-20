@@ -73,10 +73,10 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Desktop Care AppWidget -->
+        <!-- Desktop Care AppWidget: exported="true" required for OS AppWidget host broadcasts -->
         <receiver
             android:name=".widget.PlantCareWidgetProvider"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -87,8 +87,10 @@
                 android:resource="@xml/plant_care_widget_info" />
         </receiver>
 
+        <!-- RemoteViews factory service: internal component, exported="false" -->
         <service
             android:name=".widget.PlantCareWidgetService"
+            android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
     </application>

@@ -16,17 +16,24 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.plantshelf.app.R;
+import com.plantshelf.app.data.calendar.CalendarSyncManager;
+import com.plantshelf.app.data.database.PlantshelfDatabase;
+import com.plantshelf.app.data.entity.PlantEntity;
 import com.plantshelf.app.notifications.NotificationHelper;
 import com.plantshelf.app.notifications.NotificationPrefs;
 import com.plantshelf.app.notifications.NotificationScheduler;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
 
 public class NotificationSettingsDialog {
 
     public interface OnNotificationSettingsSavedListener {
         void onSettingsSaved(boolean enabled, int hour, int minute);
         void onRequestPermission();
+        default void onRequestCalendarPermission() {}
+        default void onBulkSyncCompleted(int count) {}
     }
 
     public static void show(Context context, OnNotificationSettingsSavedListener listener) {
@@ -36,6 +43,7 @@ public class NotificationSettingsDialog {
         LinearLayout layoutTimeContainer = view.findViewById(R.id.layoutTimeContainer);
         MaterialButton btnPickTime = view.findViewById(R.id.btnPickTime);
         MaterialButton btnTestNotification = view.findViewById(R.id.btnTestNotification);
+        MaterialButton btnBulkSyncCalendar = view.findViewById(R.id.btnBulkSyncCalendar);
 
         boolean initialEnabled = NotificationPrefs.isNotificationsEnabled(context);
         int[] selectedTime = new int[]{
@@ -96,6 +104,56 @@ public class NotificationSettingsDialog {
             );
             Toast.makeText(context, R.string.notif_setting_test_sent, Toast.LENGTH_SHORT).show();
         });
+
+        if (btnBulkSyncCalendar != null) {
+            btnBulkSyncCalendar.setOnClickListener(v -> {
+                if (!CalendarSyncManager.getInstance(context).hasCalendarPermission()) {
+                    Toast.makeText(context, R.string.calendar_sync_permission_needed, Toast.LENGTH_SHORT).show();
+                    if (listener != null) {
+                        listener.onRequestCalendarPermission();
+                    }
+                    return;
+                }
+
+                btnBulkSyncCalendar.setEnabled(false);
+                btnBulkSyncCalendar.setText(R.string.calendar_syncing_progress);
+
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    List<PlantEntity> plants = PlantshelfDatabase.getInstance(context).plantDao().getAllPlantsSync();
+                    if (plants == null || plants.isEmpty()) {
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            btnBulkSyncCalendar.setEnabled(true);
+                            btnBulkSyncCalendar.setText(R.string.btn_bulk_sync_calendar);
+                            Toast.makeText(context, R.string.calendar_sync_no_plants, Toast.LENGTH_SHORT).show();
+                        });
+                        return;
+                    }
+
+                    CalendarSyncManager.getInstance(context).syncAllPlants(plants, new CalendarSyncManager.SyncCallback() {
+                        @Override
+                        public void onProgress(int current, int total) {
+                        }
+
+                        @Override
+                        public void onSuccess(int syncedCount) {
+                            btnBulkSyncCalendar.setEnabled(true);
+                            btnBulkSyncCalendar.setText(R.string.btn_bulk_sync_calendar);
+                            Toast.makeText(context, context.getString(R.string.calendar_sync_success_msg, syncedCount), Toast.LENGTH_LONG).show();
+                            if (listener != null) {
+                                listener.onBulkSyncCompleted(syncedCount);
+                            }
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            btnBulkSyncCalendar.setEnabled(true);
+                            btnBulkSyncCalendar.setText(R.string.btn_bulk_sync_calendar);
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+                        }
+                    });
+                });
+            });
+        }
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.dialog_notif_settings_title)

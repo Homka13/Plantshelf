@@ -55,6 +55,9 @@ public class MainViewModel extends AndroidViewModel {
         });
     }
 
+    private final com.plantshelf.app.domain.usecase.FilterPlantsUseCase filterPlantsUseCase =
+            new com.plantshelf.app.domain.usecase.FilterPlantsUseCase();
+
     private void applyFilter() {
         List<PlantEntity> all = rawPlants.getValue();
         if (all == null) {
@@ -64,36 +67,9 @@ public class MainViewModel extends AndroidViewModel {
 
         String catId = selectedCategoryId.getValue();
         String query = searchQuery.getValue();
-        String trimmedQuery = query != null ? query.trim().toLowerCase() : "";
-
-        List<PlantEntity> result = new ArrayList<>();
         boolean quarantineOnly = Boolean.TRUE.equals(quarantineFilterOnly.getValue());
-        for (PlantEntity plant : all) {
-            // Quarantine filter
-            if (quarantineOnly && !plant.isQuarantined()) {
-                continue;
-            }
 
-            // Category filter
-            if (!quarantineOnly && catId != null && !catId.isEmpty() && !catId.equals(plant.getCategoryId())) {
-                continue;
-            }
-
-            // Search query filter
-            if (!trimmedQuery.isEmpty()) {
-                boolean matchesName = plant.getName() != null && plant.getName().toLowerCase().contains(trimmedQuery);
-                boolean matchesVariety = plant.getVariety() != null && plant.getVariety().toLowerCase().contains(trimmedQuery);
-                boolean matchesLatin = plant.getLatin() != null && plant.getLatin().toLowerCase().contains(trimmedQuery);
-                boolean matchesNickname = plant.getNickname() != null && plant.getNickname().toLowerCase().contains(trimmedQuery);
-
-                if (!matchesName && !matchesVariety && !matchesLatin && !matchesNickname) {
-                    continue;
-                }
-            }
-
-            result.add(plant);
-        }
-
+        List<PlantEntity> result = filterPlantsUseCase.execute(all, catId, query, quarantineOnly);
         filteredPlants.setValue(result);
     }
 

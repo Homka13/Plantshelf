@@ -14,6 +14,7 @@ import org.robolectric.RobolectricTestRunner;
 
 import java.util.Collections;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -58,5 +59,24 @@ public class CalendarIntegrationHelperTest {
         assertFalse(CalendarIntegrationHelper.updateCalendarEventSchedule(context, plantWithoutEventId));
 
         assertNull(CalendarIntegrationHelper.insertCalendarEventDirect(context, null, "water"));
+    }
+
+    @Test
+    public void testDeletePlantCalendarEvents_NullAndPermissionSafety() {
+        assertEquals(0, CalendarIntegrationHelper.deletePlantCalendarEvents(null, null));
+        assertEquals(0, CalendarIntegrationHelper.deletePlantCalendarEvents(context, null));
+
+        PlantEntity plant = new PlantEntity("plant_test_1");
+        plant.setName("Заміокулькас");
+        plant.setCalendarEventId("12345");
+        // Without WRITE_CALENDAR permission granted in default test context, safely returns 0
+        int deleted = CalendarIntegrationHelper.deletePlantCalendarEvents(context, plant);
+        assertEquals(0, deleted);
+    }
+
+    @Test
+    public void testIdTagPrefixConstant() {
+        assertEquals("Plantshelf_ID:", CalendarIntegrationHelper.ID_TAG_PREFIX);
+        assertEquals("Plantshelf_ID:", com.plantshelf.app.data.calendar.CalendarSyncManager.ID_TAG_PREFIX);
     }
 }

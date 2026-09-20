@@ -138,6 +138,10 @@ public class BackupExporter {
                 po.addProperty("quarantineUntil", p.getQuarantineUntil());
                 po.addProperty("quarantineFrom", p.getQuarantineFrom());
                 po.addProperty("quarantineReason", p.getQuarantineReason());
+                po.addProperty("recommendedFertilizers", p.getRecommendedFertilizers());
+                po.addProperty("fertilizeIntervalSummerDays", p.getFertilizeIntervalSummerDays());
+                po.addProperty("fertilizeIntervalWinterDays", p.getFertilizeIntervalWinterDays());
+                po.addProperty("calendarEventId", p.getCalendarEventId());
                 po.addProperty("createdAt", p.getCreatedAt());
                 po.addProperty("updatedAt", p.getUpdatedAt());
 

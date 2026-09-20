@@ -242,19 +242,42 @@ public class PlantEntity {
     }
 
     public String getRecommendedFertilizers() {
-        return recommendedFertilizers != null ? recommendedFertilizers : (fertilizer != null ? fertilizer : "");
+        return recommendedFertilizers;
     }
 
     public void setRecommendedFertilizers(String recommendedFertilizers) {
         this.recommendedFertilizers = recommendedFertilizers;
     }
 
+    /**
+     * Effective recommended fertilizer helper for UI and AI suggestions with fallback to legacy fertilizer.
+     */
+    public String getEffectiveRecommendedFertilizers() {
+        if (recommendedFertilizers != null && !recommendedFertilizers.trim().isEmpty()) {
+            return recommendedFertilizers.trim();
+        }
+        return fertilizer != null ? fertilizer.trim() : "";
+    }
+
     public int getFertilizeIntervalSummerDays() {
-        return fertilizeIntervalSummerDays > 0 ? fertilizeIntervalSummerDays : (fertIntervalDays > 0 ? fertIntervalDays : 14);
+        return fertilizeIntervalSummerDays;
     }
 
     public void setFertilizeIntervalSummerDays(int fertilizeIntervalSummerDays) {
         this.fertilizeIntervalSummerDays = fertilizeIntervalSummerDays;
+    }
+
+    /**
+     * Effective summer fertilization interval helper with fallback to legacy fertIntervalDays or 14 days.
+     */
+    public int getEffectiveFertilizeIntervalSummerDays() {
+        if (fertilizeIntervalSummerDays > 0) {
+            return fertilizeIntervalSummerDays;
+        }
+        if (fertIntervalDays > 0) {
+            return fertIntervalDays;
+        }
+        return 14;
     }
 
     public int getFertilizeIntervalWinterDays() {
@@ -263,6 +286,16 @@ public class PlantEntity {
 
     public void setFertilizeIntervalWinterDays(int fertilizeIntervalWinterDays) {
         this.fertilizeIntervalWinterDays = fertilizeIntervalWinterDays;
+    }
+
+    /**
+     * Effective winter fertilization interval helper with fallback to summer interval.
+     */
+    public int getEffectiveFertilizeIntervalWinterDays() {
+        if (fertilizeIntervalWinterDays > 0) {
+            return fertilizeIntervalWinterDays;
+        }
+        return getEffectiveFertilizeIntervalSummerDays();
     }
 
     public String getCalendarEventId() {
@@ -411,36 +444,14 @@ public class PlantEntity {
 
     /**
      * Calculates days until next watering based on current season.
-     * Positive number: days remaining until watering.
-     * 0: needs water today.
-     * Negative number: days overdue.
+     * Delegates domain business logic to CalculateNextWateringUseCase.
+     *
+     * @return Positive number (days remaining), 0 (needs water today), negative (overdue)
      */
     public int getDaysUntilWatering() {
-        if (lastWatered == null || lastWatered.trim().isEmpty()) {
-            return 0; // Needs watering immediately
-        }
-
-        try {
-            String dateStr = lastWatered.trim();
-            if (dateStr.length() > 10) {
-                dateStr = dateStr.substring(0, 10);
-            }
-            LocalDate lastDate = LocalDate.parse(dateStr);
-            LocalDate today = LocalDate.now();
-
-            int month = today.getMonthValue(); // 1 to 12
-            boolean isWinter = (month == 12 || month == 1 || month == 2);
-
-            int interval = isWinter ? getIntervalDaysWinter() : getIntervalDays();
-            if (interval <= 0) {
-                interval = 7;
-            }
-
-            LocalDate nextWater = lastDate.plusDays(interval);
-            return (int) ChronoUnit.DAYS.between(today, nextWater);
-        } catch (Exception e) {
-            return 0;
-        }
+        com.plantshelf.app.domain.usecase.CalculateNextWateringUseCase useCase =
+                new com.plantshelf.app.domain.usecase.CalculateNextWateringUseCase();
+        return useCase.execute(lastWatered, intervalDays, intervalDaysWinter).getDaysRemaining();
     }
 
     public boolean isQuarantined() {

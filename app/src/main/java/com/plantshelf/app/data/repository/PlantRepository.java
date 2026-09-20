@@ -95,7 +95,7 @@ public class PlantRepository {
     public void deletePlant(PlantEntity plant) {
         executor.execute(() -> {
             if (context != null) {
-                com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(context).deleteEventForPlant(plant);
+                com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(context).deleteEventForPlantSync(plant);
             }
             careLogDao.deleteLogsForPlant(plant.getId());
             photoDao.deletePhotosForPlant(plant.getId());
@@ -113,6 +113,12 @@ public class PlantRepository {
             String logId = UUID.randomUUID().toString().substring(0, 8);
             CareLogEntity log = new CareLogEntity(logId, plantId, "water", today, System.currentTimeMillis());
             careLogDao.insert(log);
+            if (context != null) {
+                PlantEntity updatedPlant = plantDao.getPlantByIdSync(plantId);
+                if (updatedPlant != null) {
+                    com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(context).updateEventForPlant(updatedPlant);
+                }
+            }
             com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
         });
     }
@@ -178,7 +184,31 @@ public class PlantRepository {
     }
 
     public void deleteCareLog(CareLogEntity log) {
-        executor.execute(() -> careLogDao.delete(log));
+        executor.execute(() -> {
+            careLogDao.delete(log);
+            if (log != null && log.getPlantId() != null) {
+                if ("water".equals(log.getKind())) {
+                    List<CareLogEntity> remainingWaterLogs = careLogDao.getLogsByKindSync(log.getPlantId(), "water");
+                    String latestDate = (remainingWaterLogs != null && !remainingWaterLogs.isEmpty())
+                            ? remainingWaterLogs.get(0).getDate()
+                            : "";
+                    plantDao.updateWatered(log.getPlantId(), latestDate);
+                } else if ("fert".equals(log.getKind())) {
+                    List<CareLogEntity> remainingFertLogs = careLogDao.getLogsByKindSync(log.getPlantId(), "fert");
+                    String latestDate = (remainingFertLogs != null && !remainingFertLogs.isEmpty())
+                            ? remainingFertLogs.get(0).getDate()
+                            : "";
+                    plantDao.updateFertilized(log.getPlantId(), latestDate);
+                }
+                if (context != null) {
+                    PlantEntity updatedPlant = plantDao.getPlantByIdSync(log.getPlantId());
+                    if (updatedPlant != null) {
+                        com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(context).updateEventForPlant(updatedPlant);
+                    }
+                    com.plantshelf.app.widget.PlantCareWidgetProvider.sendUpdateBroadcast(context);
+                }
+            }
+        });
     }
 
     public void insertCareLog(CareLogEntity log) {

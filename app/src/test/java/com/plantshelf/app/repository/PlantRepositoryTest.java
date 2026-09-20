@@ -154,4 +154,25 @@ public class PlantRepositoryTest {
         assertEquals("67890", updated.getCalendarEventId());
         assertEquals(10, updated.getFertilizeIntervalSummerDays());
     }
+
+    @Test
+    public void testDeletePlantRemovesPlantAndAssociatedData() throws Exception {
+        PlantEntity plant = new PlantEntity("plant_delete_target");
+        plant.setName("Бегонія");
+        plant.setCalendarEventId("998877");
+        db.plantDao().insert(plant);
+
+        CareLogEntity log = new CareLogEntity("log_1", "plant_delete_target", "water", "2026-09-18", System.currentTimeMillis());
+        db.careLogDao().insert(log);
+
+        assertNotNull(db.plantDao().getPlantByIdSync("plant_delete_target"));
+        assertFalse(db.careLogDao().getLogsForPlantSync("plant_delete_target").isEmpty());
+
+        repository.deletePlant(plant);
+        Thread.sleep(200);
+
+        // Plant and associated logs must be deleted
+        assertEquals(null, db.plantDao().getPlantByIdSync("plant_delete_target"));
+        assertTrue(db.careLogDao().getLogsForPlantSync("plant_delete_target").isEmpty());
+    }
 }

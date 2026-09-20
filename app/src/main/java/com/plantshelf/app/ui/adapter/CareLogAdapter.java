@@ -46,6 +46,34 @@ public class CareLogAdapter extends RecyclerView.Adapter<CareLogAdapter.LogViewH
         return new LogViewHolder(binding);
     }
 
+    public static String getLocalizedKindTitle(CareLogEntity log) {
+        if (log == null) return "";
+        String kind = log.getKind();
+        if ("water".equalsIgnoreCase(kind)) {
+            return "Полив";
+        } else if ("fert".equalsIgnoreCase(kind)) {
+            return "Внесення добрив";
+        } else if ("mist".equalsIgnoreCase(kind)) {
+            return "Обприскування";
+        } else if ("treatment".equalsIgnoreCase(kind)) {
+            String drug = log.getTreatmentDrug();
+            return "Лікування" + (drug != null && !drug.trim().isEmpty() ? " (" + drug.trim() + ")" : " / Обробка");
+        } else {
+            return kind != null ? kind : "Дія";
+        }
+    }
+
+    public static String getFormattedDate(CareLogEntity log) {
+        if (log == null) return "";
+        if (log.getTimestamp() > 0) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy, HH:mm", new Locale("uk"));
+            return sdf.format(new Date(log.getTimestamp()));
+        } else if (log.getDate() != null) {
+            return log.getDate();
+        }
+        return "";
+    }
+
     @Override
     public void onBindViewHolder(@NonNull LogViewHolder holder, int position) {
         CareLogEntity log = logs.get(position);
@@ -65,16 +93,11 @@ public class CareLogAdapter extends RecyclerView.Adapter<CareLogAdapter.LogViewH
             holder.binding.tvActionTitle.setText("💊 " + (drug != null && !drug.isEmpty() ? drug : "Лікування / Обробка"));
             holder.binding.ivActionIcon.setImageResource(R.drawable.ic_check);
         } else {
-            holder.binding.tvActionTitle.setText(kind);
+            holder.binding.tvActionTitle.setText(kind != null ? kind : "");
             holder.binding.ivActionIcon.setImageResource(R.drawable.ic_check);
         }
 
-        if (log.getTimestamp() > 0) {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy, HH:mm", new Locale("uk"));
-            holder.binding.tvActionDate.setText(sdf.format(new Date(log.getTimestamp())));
-        } else {
-            holder.binding.tvActionDate.setText(log.getDate());
-        }
+        holder.binding.tvActionDate.setText(getFormattedDate(log));
 
         String notes = log.getNotes();
         if (notes != null && !notes.trim().isEmpty()) {

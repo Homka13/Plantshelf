@@ -21,7 +21,7 @@ import com.plantshelf.app.data.entity.PlantEntity;
 @Database(
         entities = {CategoryEntity.class, PlantEntity.class, CareLogEntity.class, PhotoEntity.class},
         version = 3,
-        exportSchema = false
+        exportSchema = true
 )
 public abstract class PlantshelfDatabase extends RoomDatabase {
 

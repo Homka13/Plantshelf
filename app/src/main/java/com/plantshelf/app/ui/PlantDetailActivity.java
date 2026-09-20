@@ -14,10 +14,18 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
+
 import com.bumptech.glide.Glide;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.plantshelf.app.R;
+import com.plantshelf.app.data.entity.CareLogEntity;
 import com.plantshelf.app.data.entity.PlantEntity;
 import com.plantshelf.app.databinding.ActivityPlantDetailBinding;
 import com.plantshelf.app.ui.adapter.CareLogAdapter;
@@ -76,6 +84,8 @@ public class PlantDetailActivity extends AppCompatActivity {
         binding.rvCareHistory.setAdapter(careLogAdapter);
 
         ItemTouchHelper.SimpleCallback swipeCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            private final ColorDrawable deleteBackground = new ColorDrawable(Color.parseColor("#D32F2F"));
+
             @Override
             public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
                 return false;
@@ -83,18 +93,97 @@ public class PlantDetailActivity extends AppCompatActivity {
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                int position = viewHolder.getAdapterPosition();
-                com.plantshelf.app.data.entity.CareLogEntity log = careLogAdapter.getItem(position);
-                if (log != null) {
-                    viewModel.deleteCareLog(log);
-                    Snackbar.make(binding.getRoot(), "Запис видалено з історії", Snackbar.LENGTH_LONG)
-                            .setDuration(4000)
-                            .setAction("Скасувати", v -> viewModel.restoreCareLog(log))
-                            .show();
+                int position = viewHolder.getBindingAdapterPosition();
+                if (position == RecyclerView.NO_POSITION) {
+                    position = viewHolder.getAdapterPosition();
                 }
+
+                CareLogEntity log = careLogAdapter.getItem(position);
+                if (log == null) {
+                    careLogAdapter.notifyDataSetChanged();
+                    return;
+                }
+
+                showDeleteCareLogConfirmation(log, position);
+            }
+
+            @Override
+            public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView,
+                                    @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY,
+                                    int actionState, boolean isCurrentlyActive) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    View itemView = viewHolder.itemView;
+                    Drawable deleteIcon = ContextCompat.getDrawable(PlantDetailActivity.this, R.drawable.ic_delete);
+                    if (deleteIcon != null) {
+                        deleteIcon = deleteIcon.mutate();
+                        DrawableCompat.setTint(deleteIcon, Color.WHITE);
+                    }
+
+                    int itemHeight = itemView.getHeight();
+                    int iconMargin = deleteIcon != null ? (itemHeight - deleteIcon.getIntrinsicHeight()) / 2 : 0;
+
+                    if (dX > 0) { // Swiping right
+                        deleteBackground.setBounds(itemView.getLeft(), itemView.getTop(), (int) (itemView.getLeft() + dX), itemView.getBottom());
+                        deleteBackground.draw(c);
+
+                        if (deleteIcon != null) {
+                            int iconTop = itemView.getTop() + (itemHeight - deleteIcon.getIntrinsicHeight()) / 2;
+                            int iconBottom = iconTop + deleteIcon.getIntrinsicHeight();
+                            int iconLeft = itemView.getLeft() + iconMargin;
+                            int iconRight = iconLeft + deleteIcon.getIntrinsicWidth();
+                            deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
+                            deleteIcon.draw(c);
+                        }
+                    } else if (dX < 0) { // Swiping left
+                        deleteBackground.setBounds((int) (itemView.getRight() + dX), itemView.getTop(), itemView.getRight(), itemView.getBottom());
+                        deleteBackground.draw(c);
+
+                        if (deleteIcon != null) {
+                            int iconTop = itemView.getTop() + (itemHeight - deleteIcon.getIntrinsicHeight()) / 2;
+                            int iconBottom = iconTop + deleteIcon.getIntrinsicHeight();
+                            int iconLeft = itemView.getRight() - iconMargin - deleteIcon.getIntrinsicWidth();
+                            int iconRight = itemView.getRight() - iconMargin;
+                            deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
+                            deleteIcon.draw(c);
+                        }
+                    } else {
+                        deleteBackground.setBounds(0, 0, 0, 0);
+                    }
+                }
+
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             }
         };
         new ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.rvCareHistory);
+    }
+
+    /**
+     * Displays a confirmation dialog before deleting an individual watering or fertilizer record.
+     * If confirmed, deletes the log and offers an undo Snackbar.
+     * If canceled or dismissed, restores the swiped item back into view.
+     */
+    private void showDeleteCareLogConfirmation(CareLogEntity log, int position) {
+        String actionName = CareLogAdapter.getLocalizedKindTitle(log);
+        String dateStr = CareLogAdapter.getFormattedDate(log);
+        String recordDetails = !dateStr.isEmpty() ? (actionName + " • " + dateStr) : actionName;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.delete_care_log_title)
+                .setMessage(getString(R.string.delete_care_log_confirm_message, recordDetails))
+                .setPositiveButton(R.string.btn_delete, (dialog, which) -> {
+                    viewModel.deleteCareLog(log);
+                    Snackbar.make(binding.getRoot(), R.string.care_log_deleted, Snackbar.LENGTH_LONG)
+                            .setDuration(4000)
+                            .setAction(R.string.btn_undo, v -> viewModel.restoreCareLog(log))
+                            .show();
+                })
+                .setNegativeButton(R.string.btn_cancel, (dialog, which) -> {
+                    careLogAdapter.notifyItemChanged(position);
+                })
+                .setOnCancelListener(dialog -> {
+                    careLogAdapter.notifyItemChanged(position);
+                })
+                .show();
     }
 
     private void observePlant() {
@@ -121,21 +210,35 @@ public class PlantDetailActivity extends AppCompatActivity {
         binding.tvWinterInterval.setText(getString(R.string.days_unit, plant.getIntervalDaysWinter()));
         binding.tvFertInterval.setText(getString(R.string.days_unit, plant.getFertIntervalDays()));
 
-        // Fertilizing Section
-        String fertRec = plant.getRecommendedFertilizers();
-        if (fertRec != null && !fertRec.trim().isEmpty()) {
-            binding.tvFertilizerType.setText("Рекомендовано: " + fertRec);
+        // Fertilizing & Watering Intervals Section
+        String fertRec = plant.getEffectiveRecommendedFertilizers();
+        if (!fertRec.isEmpty()) {
+            binding.tvFertilizerType.setText(getString(R.string.fertilizer_recommended_prefix, fertRec));
         } else {
-            binding.tvFertilizerType.setText("Рекомендовано: Комплексне добриво з мікроелементами");
+            binding.tvFertilizerType.setText(getString(R.string.fertilizer_recommended_prefix, getString(R.string.fertilizer_default_recommended)));
         }
-        int fertSummer = plant.getFertilizeIntervalSummerDays();
-        binding.tvFertilizerSummerSchedule.setText(getString(R.string.days_unit, fertSummer));
+
+        if (plant.getLastFert() != null && !plant.getLastFert().isEmpty()) {
+            binding.tvLastFertilizedDate.setText(getString(R.string.fertilizer_last_date, plant.getLastFert()));
+        } else {
+            binding.tvLastFertilizedDate.setText(getString(R.string.fertilizer_last_date, getString(R.string.fertilizer_never_fertilized)));
+        }
+
+        int fertSummer = plant.getEffectiveFertilizeIntervalSummerDays();
+        binding.tvFertilizerSummerSchedule.setText(getString(R.string.fertilizer_every_n_days, fertSummer));
+
         int fertWinter = plant.getFertilizeIntervalWinterDays();
         if (fertWinter > 0) {
-            binding.tvFertilizerWinterSchedule.setText(getString(R.string.days_unit, fertWinter));
+            binding.tvFertilizerWinterSchedule.setText(getString(R.string.fertilizer_every_n_days, fertWinter));
         } else {
-            binding.tvFertilizerWinterSchedule.setText("Період спокою (без добрив)");
+            binding.tvFertilizerWinterSchedule.setText(getString(R.string.fertilizer_dormant_period));
         }
+
+        // Recommended watering intervals
+        int waterSummer = plant.getIntervalDays() > 0 ? plant.getIntervalDays() : 7;
+        int waterWinter = plant.getIntervalDaysWinter() > 0 ? plant.getIntervalDaysWinter() : (waterSummer + 4);
+        binding.tvWateringSummerSchedule.setText(getString(R.string.fertilizer_every_n_days, waterSummer));
+        binding.tvWateringWinterSchedule.setText(getString(R.string.fertilizer_every_n_days, waterWinter));
 
         // Requirements
         String lightText = "☀️ " + getString(R.string.label_light) + ": " + (plant.getLight() != null ? plant.getLight() : "");
@@ -202,6 +305,11 @@ public class PlantDetailActivity extends AppCompatActivity {
         });
 
         binding.btnActionFert.setOnClickListener(v -> {
+            viewModel.recordFertilizing();
+            Snackbar.make(binding.getRoot(), R.string.action_fertilized_success, Snackbar.LENGTH_SHORT).show();
+        });
+
+        binding.btnCardFertilizeAction.setOnClickListener(v -> {
             viewModel.recordFertilizing();
             Snackbar.make(binding.getRoot(), R.string.action_fertilized_success, Snackbar.LENGTH_SHORT).show();
         });

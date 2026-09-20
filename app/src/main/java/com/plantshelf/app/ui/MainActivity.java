@@ -339,6 +339,18 @@ public class MainActivity extends AppCompatActivity {
                     postNotificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
                 }
             }
+
+            @Override
+            public void onRequestCalendarPermission() {
+                calendarPermissionLauncher.launch(Manifest.permission.WRITE_CALENDAR);
+            }
+
+            @Override
+            public void onBulkSyncCompleted(int count) {
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.calendar_sync_success_msg, count),
+                        Snackbar.LENGTH_LONG).show();
+            }
         });
     }
 

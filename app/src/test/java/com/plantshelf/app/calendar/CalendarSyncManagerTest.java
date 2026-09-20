@@ -50,6 +50,8 @@ public class CalendarSyncManagerTest {
         dummy.setName("Драцена");
         syncManager.updateEventForPlant(dummy);
         syncManager.deleteEventForPlant(dummy);
+        assertEquals(0, syncManager.deleteEventForPlantSync(dummy));
+        assertEquals(0, syncManager.deleteEventForPlantSync(null));
     }
 
     @Test

@@ -312,8 +312,12 @@ public class AddEditPlantActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     binding.progressAi.setVisibility(View.GONE);
                     binding.btnAiIdentify.setEnabled(true);
-                    Toast.makeText(AddEditPlantActivity.this,
-                            getString(R.string.ai_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                    com.plantshelf.app.data.ai.AiErrorLogger.showErrorFeedbackDialog(
+                            AddEditPlantActivity.this,
+                            "Помилка розпізнавання рослини",
+                            e,
+                            () -> startAiAnalysis(imagePath)
+                    );
                 });
             }
         });

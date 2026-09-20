@@ -32,6 +32,19 @@
     <string name="label_fertilizer_freq">Підживлення</string>
     <string name="label_mist_freq">Обприскування</string>
     <string name="days_unit">%1$d дн.</string>
+    <string name="section_fertilizer">Підживлення та добрива</string>
+    <string name="fertilizer_recommended_prefix">Рекомендовано: %1$s</string>
+    <string name="fertilizer_default_recommended">Комплексне універсальне добриво з мікроелементами</string>
+    <string name="fertilizer_season_spring_summer">🌱 Весна / Літо (активний ріст)</string>
+    <string name="fertilizer_season_autumn_winter">❄️ Осінь / Зима (спокій)</string>
+    <string name="fertilizer_dormant_period">Період спокою (без добрив)</string>
+    <string name="fertilizer_every_n_days">Кожні %1$d дн.</string>
+    <string name="watering_intervals_heading">💧 Рекомендований полив</string>
+    <string name="watering_summer_label">Літній період:</string>
+    <string name="watering_winter_label">Зимовий період:</string>
+    <string name="fertilizer_advice_tip">💡 Порада: удобрюйте лише по вологому субстрату після поливу, щоб не обпалити корінці.</string>
+    <string name="fertilizer_last_date">Останнє підживлення: %1$s</string>
+    <string name="fertilizer_never_fertilized">Ще не підживлювалось</string>
     <string name="section_requirements">Вимоги до середовища</string>
     <string name="label_light">Освітлення</string>
     <string name="label_target_lux">Цільове світло</string>
@@ -85,6 +98,16 @@
     <string name="ai_identifying">AI аналізує рослину за фото...</string>
     <string name="ai_success">Рослину визначено! Форму заповнено.</string>
     <string name="ai_error">Помилка AI: %1$s</string>
+    <string name="ai_error_dialog_title">Помилка взаємодії з Gemini AI</string>
+    <string name="ai_error_action_retry">Повторити спробу</string>
+    <string name="ai_error_action_details">Журнал помилок</string>
+    <string name="ai_logs_title">Журнал помилок Gemini AI</string>
+    <string name="ai_logs_empty">Журнал чистий. Помилок взаємодії з Gemini AI не зафіксовано 👍</string>
+    <string name="ai_logs_clear">Очистити журнал</string>
+    <string name="ai_logs_copy">Скопіювати</string>
+    <string name="ai_logs_cleared">Журнал помилок AI очищено</string>
+    <string name="ai_logs_copied">Журнал помилок скопійовано в буфер обміну</string>
+    <string name="ai_settings_btn_logs">📋 Журнал помилок AI</string>
     <string name="dialog_api_key_title">Gemini API Ключ</string>
     <string name="dialog_api_key_desc">Введіть безкоштовний ключ Google Gemini API для розпізнавання рослин за фото. Отримати ключ можна на aistudio.google.com</string>
     <string name="dialog_api_key_hint">Вставте ваш API-ключ тут...</string>
@@ -105,12 +128,21 @@
     <string name="dialog_notif_permission_desc">Дозвольте Plantshelf надсилати сповіщення, щоб вчасно поливати та підживлювати ваші рослини за графіком.</string>
     <string name="dialog_notif_permission_grant">Увімкнути сповіщення</string>
     <string name="dialog_notif_permission_later">Пізніше</string>
-    <string name="dialog_notif_settings_title">Нагадування про догляд 🌱</string>
+    <string name="dialog_notif_settings_title">Налаштування догляду та календаря 🌱</string>
     <string name="notif_setting_enable">Щоденні сповіщення про полив</string>
     <string name="notif_setting_time_label">Час щоденного нагадування</string>
     <string name="notif_setting_test_btn">Надіслати тестове сповіщення</string>
     <string name="notif_setting_test_sent">Тестове сповіщення надіслано!</string>
     <string name="notif_saved_snackbar">Розклад нагадувань збережено (щодня о %1$s)</string>
+
+    <!-- Bulk Calendar Sync in Settings -->
+    <string name="calendar_sync_section_title">Системний календар</string>
+    <string name="calendar_bulk_sync_desc">Оновити всі розклади догляду за рослинами в системному календарі за допомогою пакетної синхронізації (applyBatch).</string>
+    <string name="btn_bulk_sync_calendar">🔄 Пакетна синхронізація календаря</string>
+    <string name="calendar_sync_permission_needed">Потрібен дозвіл для запису в системний календар</string>
+    <string name="calendar_sync_no_plants">Немає рослин для синхронізації</string>
+    <string name="calendar_sync_success_msg">Успішно оновлено %1$d рослин у системному календарі!</string>
+    <string name="calendar_syncing_progress">Синхронізація розкладу...</string>
 
     <!-- Quarantine & Treatment -->
     <string name="status_quarantine_chip">⚠️ Карантин (%1$d)</string>
@@ -141,9 +173,13 @@
     <!-- Plant Actions -->
     <string name="btn_edit">Редагувати</string>
     <string name="btn_delete">Видалити</string>
+    <string name="btn_undo">Скасувати</string>
     <string name="delete_plant_title">Видалити рослину?</string>
     <string name="delete_plant_confirm_message">Ви впевнені, що хочете видалити «%1$s»? Всі фото та історію догляду буде видалено безповоротно.</string>
     <string name="plant_deleted_success">Рослину видалено</string>
+    <string name="delete_care_log_title">Видалити запис догляду?</string>
+    <string name="delete_care_log_confirm_message">Ви дійсно бажаєте видалити цей запис (%1$s) з історії догляду?</string>
+    <string name="care_log_deleted">Запис видалено з історії</string>
     <string name="edit_plant_title">Редагувати рослину</string>
     <string name="btn_save_changes">Зберегти зміни</string>
     <string name="plant_updated_success">Зміни збережено!</string>

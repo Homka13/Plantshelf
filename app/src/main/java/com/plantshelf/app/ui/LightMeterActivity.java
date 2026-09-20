@@ -59,6 +59,9 @@ public class LightMeterActivity extends AppCompatActivity implements SensorEvent
         }
     }
 
+    private final com.plantshelf.app.domain.usecase.AnalyzeLightLevelUseCase analyzeLightLevelUseCase =
+            new com.plantshelf.app.domain.usecase.AnalyzeLightLevelUseCase();
+
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
@@ -68,23 +71,12 @@ public class LightMeterActivity extends AppCompatActivity implements SensorEvent
     }
 
     private void updateLuxDisplay(float lux) {
-        int roundedLux = Math.round(lux);
-        binding.tvLuxValue.setText(String.format(Locale.getDefault(), "%,d lx", roundedLux));
-        binding.progressLux.setProgress(Math.min(roundedLux, 30000));
+        com.plantshelf.app.domain.model.LightAnalysisResult analysis =
+                analyzeLightLevelUseCase.execute(lux);
 
-        String category;
-        if (roundedLux < 500) {
-            category = "🌑 Низьке світло (глибока тінь / північні кімнати)";
-        } else if (roundedLux < 2500) {
-            category = "⛅ Помірне розсіяне світло (півтінь / 2-3 метри від вікна)";
-        } else if (roundedLux < 10000) {
-            category = "☀️ Яскраве розсіяне світло (ідеально для більшості рослин)";
-        } else if (roundedLux < 25000) {
-            category = "🌟 Дуже яскраве непряме світло (Монстери, Фікуси, Східні/Західні вікна)";
-        } else {
-            category = "🔥 Пряме сонячне світло (Південні вікна, Сукуленти, Кактуси)";
-        }
-        binding.tvLightCategory.setText(category);
+        binding.tvLuxValue.setText(String.format(Locale.getDefault(), "%,d lx", analysis.getLux()));
+        binding.progressLux.setProgress(analysis.getProgressPercentage());
+        binding.tvLightCategory.setText(analysis.getDisplayCategory());
     }
 
     @Override

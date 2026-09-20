@@ -283,6 +283,10 @@ public class BrunqBackupImporter {
         String quarantineUntil = null;
         String quarantineFrom = null;
         String quarantineReason = null;
+        String recommendedFertilizers = null;
+        int fertilizeIntervalSummerDays = 0;
+        int fertilizeIntervalWinterDays = 0;
+        String calendarEventId = null;
         String createdAt = null;
         String updatedAt = null;
 
@@ -395,6 +399,18 @@ public class BrunqBackupImporter {
                 case "quarantineReason":
                     quarantineReason = readSafeString(reader, null);
                     break;
+                case "recommendedFertilizers":
+                    recommendedFertilizers = readSafeString(reader, null);
+                    break;
+                case "fertilizeIntervalSummerDays":
+                    fertilizeIntervalSummerDays = readSafeInt(reader, 0);
+                    break;
+                case "fertilizeIntervalWinterDays":
+                    fertilizeIntervalWinterDays = readSafeInt(reader, 0);
+                    break;
+                case "calendarEventId":
+                    calendarEventId = readSafeString(reader, null);
+                    break;
                 case "createdAt":
                     createdAt = readSafeString(reader, null);
                     break;
@@ -448,6 +464,10 @@ public class BrunqBackupImporter {
         plant.setQuarantineUntil(quarantineUntil);
         plant.setQuarantineFrom(quarantineFrom);
         plant.setQuarantineReason(quarantineReason);
+        plant.setRecommendedFertilizers(recommendedFertilizers);
+        plant.setFertilizeIntervalSummerDays(fertilizeIntervalSummerDays);
+        plant.setFertilizeIntervalWinterDays(fertilizeIntervalWinterDays);
+        plant.setCalendarEventId(calendarEventId);
         plant.setCreatedAt(createdAt);
         plant.setUpdatedAt(updatedAt);
 

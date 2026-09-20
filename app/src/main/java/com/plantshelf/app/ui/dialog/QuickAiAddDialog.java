@@ -145,21 +145,29 @@ public class QuickAiAddDialog {
             public void onError(Exception e) {
                 if (context instanceof android.app.Activity) {
                     ((android.app.Activity) context).runOnUiThread(() -> {
-                        String errMsg = e.getMessage() != null ? e.getMessage() : "Невідома помилка";
+                        String friendlyMsg = com.plantshelf.app.data.ai.AiErrorLogger.getUserFriendlyMessage(e);
                         List<CatalogPlant> matches = PlantCatalogRepository.filter(plantName, null);
                         if (!matches.isEmpty()) {
                             CatalogPlant fallbackPlant = matches.get(0);
                             new MaterialAlertDialogBuilder(context)
                                     .setTitle("Помилка AI та офлайн-довідник")
-                                    .setMessage(errMsg + "\n\nАле у вбудованій офлайн-енциклопедії знайдено рослину: \""
+                                    .setMessage(friendlyMsg + "\n\nАле у вбудованій офлайн-енциклопедії знайдено рослину: \""
                                             + fallbackPlant.getName() + " (" + fallbackPlant.getLatin() + ")\". Додати її з енциклопедії?")
                                     .setPositiveButton("Додати з енциклопедії", (d, which) -> {
                                         addCatalogPlantDirectly(context, fallbackPlant, categoryId, callback);
                                     })
+                                    .setNeutralButton("Журнал помилок", (d, which) -> {
+                                        com.plantshelf.app.data.ai.AiErrorLogger.showLogsDialog(context);
+                                    })
                                     .setNegativeButton("Скасувати", null)
                                     .show();
                         } else {
-                            Toast.makeText(context, "Помилка AI: " + errMsg, Toast.LENGTH_LONG).show();
+                            com.plantshelf.app.data.ai.AiErrorLogger.showErrorFeedbackDialog(
+                                    context,
+                                    "Помилка створення рослини через AI",
+                                    e,
+                                    () -> executeAiPlantCreation(context, plantName, categoryId, callback)
+                            );
                         }
                     });
                 }

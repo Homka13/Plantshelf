@@ -52,4 +52,14 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- AI Error Logs Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnViewLogs"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/ai_settings_btn_logs"
+        app:icon="@android:drawable/ic_menu_info_details" />
+
 </LinearLayout>

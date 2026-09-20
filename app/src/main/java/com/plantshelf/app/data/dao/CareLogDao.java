@@ -20,6 +20,9 @@ public interface CareLogDao {
     @Query("SELECT * FROM care_logs WHERE plantId = :plantId ORDER BY timestamp DESC")
     List<CareLogEntity> getLogsForPlantSync(String plantId);
 
+    @Query("SELECT * FROM care_logs WHERE plantId = :plantId AND kind = :kind ORDER BY timestamp DESC")
+    List<CareLogEntity> getLogsByKindSync(String plantId, String kind);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(CareLogEntity log);
 

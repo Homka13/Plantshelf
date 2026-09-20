@@ -59,7 +59,7 @@ public class GeminiPlantAiService {
 
     private static final String TAG = "GeminiPlantAiService";
     private static final String PREFS_NAME = "plantshelf_ai_prefs";
-    private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
+    public static final String KEY_GEMINI_API_KEY = "gemini_api_key";
     public static final String KEY_GEMINI_MODEL = "gemini_model";
     public static final String DEFAULT_MODEL = "gemini-3.8-flash";
 
@@ -84,24 +84,26 @@ public class GeminiPlantAiService {
     }
 
     public static String getSavedApiKey(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String savedKey = prefs.getString(KEY_GEMINI_API_KEY, "");
+        String savedKey = com.plantshelf.app.domain.security.SecurePreferencesManager.getSecret(context, KEY_GEMINI_API_KEY, "");
         if (savedKey != null && !savedKey.trim().isEmpty()) {
             return savedKey.trim();
         }
-        try {
-            if (BuildConfig.GEMINI_API_KEY != null && !BuildConfig.GEMINI_API_KEY.trim().isEmpty()
-                    && !"your_api_key_here".equalsIgnoreCase(BuildConfig.GEMINI_API_KEY.trim())) {
-                return BuildConfig.GEMINI_API_KEY.trim();
+        // Only fallback to BuildConfig in debug builds to prevent leaking developer keys in release APKs
+        if (BuildConfig.DEBUG) {
+            try {
+                if (BuildConfig.GEMINI_API_KEY != null && !BuildConfig.GEMINI_API_KEY.trim().isEmpty()
+                        && !"your_api_key_here".equalsIgnoreCase(BuildConfig.GEMINI_API_KEY.trim())) {
+                    return BuildConfig.GEMINI_API_KEY.trim();
+                }
+            } catch (Throwable ignored) {
             }
-        } catch (Throwable ignored) {
         }
         return "";
     }
 
     public static String getSavedModel(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_GEMINI_MODEL, DEFAULT_MODEL);
+        return com.plantshelf.app.domain.security.SecurePreferencesManager.getSecurePreferences(context)
+                .getString(KEY_GEMINI_MODEL, DEFAULT_MODEL);
     }
 
     public static void saveApiKey(Context context, String apiKey) {
@@ -109,9 +111,9 @@ public class GeminiPlantAiService {
     }
 
     public static void saveAiSettings(Context context, String apiKey, String model) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        prefs.edit()
-                .putString(KEY_GEMINI_API_KEY, apiKey != null ? apiKey.trim() : "")
+        com.plantshelf.app.domain.security.SecurePreferencesManager.putSecret(context, KEY_GEMINI_API_KEY, apiKey != null ? apiKey.trim() : "");
+        com.plantshelf.app.domain.security.SecurePreferencesManager.getSecurePreferences(context)
+                .edit()
                 .putString(KEY_GEMINI_MODEL, model != null && !model.trim().isEmpty() ? model.trim() : DEFAULT_MODEL)
                 .apply();
     }
@@ -126,7 +128,9 @@ public class GeminiPlantAiService {
     ) {
         String apiKey = getSavedApiKey(context);
         if (apiKey.isEmpty()) {
-            callback.onError(new IllegalStateException("API ключ не встановлено"));
+            Exception ex = new IllegalStateException("API-ключ Gemini не встановлено. Будь ласка, вкажіть ваш ключ у налаштуваннях.");
+            AiErrorLogger.log(context, "IdentifyPlantByPhoto", ex, "missing_key");
+            callback.onError(ex);
             return;
         }
 
@@ -134,7 +138,7 @@ public class GeminiPlantAiService {
             try {
                 String base64Image = prepareBase64Image(imageFile);
                 if (base64Image == null) {
-                    throw new IllegalArgumentException("Не вдалося завантажити фото для аналізу");
+                    throw new IllegalArgumentException("Не вдалося завантажити або обробити фото для аналізу");
                 }
 
                 String promptText = "Ти експерт-ботанік з кімнатних рослин. "
@@ -167,6 +171,7 @@ public class GeminiPlantAiService {
                 sendGeminiRequest(context, apiKey, payload, callback);
             } catch (Exception e) {
                 Log.e(TAG, "Error in identifyPlantByPhoto", e);
+                AiErrorLogger.log(context, "IdentifyPlantByPhoto", e, "image=" + (imageFile != null ? imageFile.getName() : "null"));
                 callback.onError(e);
             }
         }).start();
@@ -182,7 +187,9 @@ public class GeminiPlantAiService {
     ) {
         String apiKey = getSavedApiKey(context);
         if (apiKey.isEmpty()) {
-            callback.onError(new IllegalStateException("API ключ не встановлено"));
+            Exception ex = new IllegalStateException("API-ключ Gemini не встановлено. Будь ласка, вкажіть ваш ключ у налаштуваннях.");
+            AiErrorLogger.log(context, "GeneratePlantByName", ex, "plantName=" + plantName + ", missing_key");
+            callback.onError(ex);
             return;
         }
 
@@ -209,6 +216,7 @@ public class GeminiPlantAiService {
                 sendGeminiRequest(context, apiKey, payload, callback);
             } catch (Exception e) {
                 Log.e(TAG, "Error in generatePlantByName", e);
+                AiErrorLogger.log(context, "GeneratePlantByName", e, "plantName=" + plantName);
                 callback.onError(e);
             }
         }).start();
@@ -263,20 +271,32 @@ public class GeminiPlantAiService {
                 response.append(line);
             }
 
-            if (code == 404) {
-                throw new RuntimeException("Модель '" + model + "' недоступна (HTTP 404). Оберіть іншу модель у налаштуваннях AI (наприклад, gemini-flash-latest або gemini-3.5-flash).");
-            } else if (code == 429) {
-                throw new RuntimeException("Перевищено ліміти запитів Gemini API (HTTP 429). Зачекайте хвилину перед повторним запитом.");
-            } else if (code == 400 || code == 403) {
-                throw new RuntimeException("Недійсний або неактивний API-ключ Gemini (HTTP " + code + "). Перевірте ключ у налаштуваннях додатка.");
-            } else if (code != 200) {
-                throw new RuntimeException("Помилка сервера Gemini (" + code + "): " + response.toString());
+            if (code != 200) {
+                String errorBody = response.toString();
+                String friendlyMsg;
+                if (code == 404) {
+                    friendlyMsg = "Модель '" + model + "' недоступна (HTTP 404). Оберіть актуальну модель (наприклад, 'gemini-3.8-flash' або 'gemini-flash-latest') у налаштуваннях AI.";
+                } else if (code == 429) {
+                    friendlyMsg = "Перевищено ліміти запитів Gemini API (HTTP 429). Зачекайте 1-2 хвилини перед повторним запитом.";
+                } else if (code == 400 || code == 403 || code == 401) {
+                    friendlyMsg = "Недійсний або неактивний API-ключ Gemini (HTTP " + code + "). Перевірте ключ у налаштуваннях додатка.";
+                } else if (code >= 500) {
+                    friendlyMsg = "Сервери Google Gemini тимчасово недоступні (HTTP " + code + "). Спробуйте через кілька хвилин.";
+                } else {
+                    friendlyMsg = "Помилка сервера Gemini (" + code + "): " + errorBody;
+                }
+                RuntimeException ex = new RuntimeException(friendlyMsg);
+                AiErrorLogger.logHttpError(context, "GeminiRequest", model, code, errorBody, ex);
+                throw ex;
             }
 
             JsonObject geminiResp = JsonParser.parseString(response.toString()).getAsJsonObject();
             String rawText = extractTextFromGeminiResponse(geminiResp);
             String cleanJson = cleanJsonContent(rawText);
             AiPlantAnalysisResult result = new Gson().fromJson(cleanJson, AiPlantAnalysisResult.class);
+            if (result == null) {
+                throw new IllegalStateException("Не вдалося сформувати дані рослини з відповіді AI");
+            }
 
             callback.onSuccess(result);
         } catch (Exception e) {
@@ -284,8 +304,8 @@ public class GeminiPlantAiService {
             Exception friendlyException = e;
             if (e instanceof UnknownHostException || e instanceof ConnectException || e instanceof SocketTimeoutException) {
                 friendlyException = new RuntimeException("Відсутній зв'язок з інтернетом або перевищено час очікування відповіді Gemini. Перевірте з'єднання з мережею.", e);
+                AiErrorLogger.log(context, "GeminiRequest", friendlyException, "model=" + getSavedModel(context) + ", network_error");
             }
-            AiErrorLogger.log(context, "GeminiRequest", friendlyException, "model=" + getSavedModel(context));
             callback.onError(friendlyException);
         } finally {
             if (conn != null) {
@@ -333,6 +353,14 @@ public class GeminiPlantAiService {
             JsonArray candidates = root.getAsJsonArray("candidates");
             if (candidates.size() > 0) {
                 JsonObject cand = candidates.get(0).getAsJsonObject();
+                if (cand.has("finishReason")) {
+                    String finishReason = cand.get("finishReason").getAsString();
+                    if ("SAFETY".equalsIgnoreCase(finishReason)) {
+                        throw new IllegalStateException("Запит або фото заблоковано фільтрами безпеки вмісту Gemini (SAFETY). Спробуйте інше фото рослини.");
+                    } else if ("RECITATION".equalsIgnoreCase(finishReason)) {
+                        throw new IllegalStateException("Відповідь заблоковано через політику цитування (RECITATION). Спробуйте ще раз.");
+                    }
+                }
                 if (cand.has("content")) {
                     JsonObject content = cand.getAsJsonObject("content");
                     if (content.has("parts")) {
@@ -344,7 +372,14 @@ public class GeminiPlantAiService {
                 }
             }
         }
-        throw new IllegalStateException("Gemini не повернув результату");
+        if (root.has("promptFeedback")) {
+            JsonObject pf = root.getAsJsonObject("promptFeedback");
+            if (pf.has("blockReason")) {
+                String blockReason = pf.get("blockReason").getAsString();
+                throw new IllegalStateException("Запит відхилено Gemini (" + blockReason + "). Будь ласка, оберіть інше фото рослини.");
+            }
+        }
+        throw new IllegalStateException("Gemini не повернув результату розпізнавання");
     }
 
     public static String cleanJsonContent(String raw) {

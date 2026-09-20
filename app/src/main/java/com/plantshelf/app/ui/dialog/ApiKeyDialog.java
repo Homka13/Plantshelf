@@ -59,6 +59,11 @@ public class ApiKeyDialog {
             }
         });
 
+        View btnViewLogs = view.findViewById(R.id.btnViewLogs);
+        if (btnViewLogs != null) {
+            btnViewLogs.setOnClickListener(v -> com.plantshelf.app.data.ai.AiErrorLogger.showLogsDialog(context));
+        }
+
         new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.dialog_api_key_title)
                 .setView(view)

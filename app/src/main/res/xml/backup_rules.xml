@@ -2,4 +2,7 @@
 <full-backup-content>
     <!-- Exclude Gemini API key preferences from legacy auto backup -->
     <exclude domain="sharedpref" path="plantshelf_ai_prefs.xml" />
+    <exclude domain="sharedpref" path="plantshelf_secure_ai_prefs.xml" />
+    <!-- Exclude unencrypted local Room database from plain cloud auto-backup -->
+    <exclude domain="database" path="plantshelf.db" />
 </full-backup-content>

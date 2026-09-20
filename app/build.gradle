@@ -41,11 +41,16 @@ android {
             }
             if (keystoreFile.exists()) {
                 storeFile keystoreFile
-                storePassword System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: project.findProperty("RELEASE_KEYSTORE_PASSWORD") ?: "PlantshelfRelease2026!"
+                storePassword System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: project.findProperty("RELEASE_KEYSTORE_PASSWORD") ?: ""
                 keyAlias System.getenv("RELEASE_KEY_ALIAS") ?: project.findProperty("RELEASE_KEY_ALIAS") ?: "plantshelf"
-                keyPassword System.getenv("RELEASE_KEY_PASSWORD") ?: project.findProperty("RELEASE_KEY_PASSWORD") ?: "PlantshelfRelease2026!"
+                keyPassword System.getenv("RELEASE_KEY_PASSWORD") ?: project.findProperty("RELEASE_KEY_PASSWORD") ?: ""
             }
         }
+    }
+
+    sourceSets {
+        test.assets.srcDirs += files("$projectDir/schemas".toString())
+        androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }
 
     buildTypes {
@@ -58,7 +63,8 @@ android {
             } else {
                 signingConfig signingConfigs.debug
             }
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -76,6 +82,15 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+    }
+}
+
+// Enforce test verification before release builds to catch regressions in logic or Room schemas
+afterEvaluate {
+    def assembleReleaseTask = tasks.findByName('assembleRelease')
+    def testDebugTask = tasks.findByName('testDebugUnitTest')
+    if (assembleReleaseTask != null && testDebugTask != null) {
+        assembleReleaseTask.dependsOn(testDebugTask)
     }
 }
 
@@ -106,6 +121,9 @@ dependencies {
 
     // JSON parsing
     implementation 'com.google.code.gson:gson:2.10.1'
+
+    // AndroidX Security for Keystore-backed encrypted preferences
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
 
     // Image loading & caching
     implementation 'com.github.bumptech.glide:glide:4.16.0'

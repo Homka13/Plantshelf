@@ -49,6 +49,18 @@ if ($choice -eq "4") {
 }
 
 if ($choice -eq "3") {
+    Write-Host ""
+    Write-Host "========================================================" -ForegroundColor Green
+    Write-Host "     Перевірка регресій перед релізом (Unit Tests)..." -ForegroundColor Green
+    Write-Host "========================================================"
+    & .\gradlew.bat testDebugUnitTest
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ПОМИЛКА] Юніт-тести провалено! Реліз скасовано для запобігання регресіям." -ForegroundColor Red
+        exit
+    }
+    Write-Host "[OK] Усі тести пройшли успішно." -ForegroundColor Green
+    Write-Host ""
+
     $tag = Read-Host "Введіть версію тегу (наприклад, v1.0.1)"
     if ([string]::IsNullOrWhiteSpace($tag)) {
         Write-Host "[!] Тег не вказано. Скасовано." -ForegroundColor Red
