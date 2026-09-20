@@ -66,4 +66,10 @@ public abstract class PlantshelfDatabase extends RoomDatabase {
         }
         return INSTANCE;
     }
+
+    public static void setTestInstance(PlantshelfDatabase testInstance) {
+        synchronized (PlantshelfDatabase.class) {
+            INSTANCE = testInstance;
+        }
+    }
 }

@@ -42,14 +42,18 @@ public class PlantRepository {
     private final PhotoDao photoDao;
     private final ExecutorService executor;
 
-    public PlantRepository(Application application) {
-        this.context = application.getApplicationContext();
-        PlantshelfDatabase db = PlantshelfDatabase.getInstance(application);
+    public PlantRepository(Context context) {
+        this.context = context.getApplicationContext();
+        PlantshelfDatabase db = PlantshelfDatabase.getInstance(this.context);
         this.categoryDao = db.categoryDao();
         this.plantDao = db.plantDao();
         this.careLogDao = db.careLogDao();
         this.photoDao = db.photoDao();
         this.executor = Executors.newFixedThreadPool(4);
+    }
+
+    public PlantRepository(Application application) {
+        this((Context) application);
     }
 
     public PlantRepository(Context context, CategoryDao categoryDao, PlantDao plantDao,

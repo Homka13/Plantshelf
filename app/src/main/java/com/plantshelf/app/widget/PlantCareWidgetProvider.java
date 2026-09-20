@@ -18,13 +18,7 @@ public class PlantCareWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_REFRESH_WIDGET = "com.plantshelf.app.widget.ACTION_REFRESH_WIDGET";
 
     public static void sendUpdateBroadcast(Context context) {
-        if (context == null) return;
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        ComponentName componentName = new ComponentName(context, PlantCareWidgetProvider.class);
-        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
-        if (appWidgetIds != null && appWidgetIds.length > 0) {
-            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widgetListView);
-        }
+        WidgetUpdateHelper.updateAllWidgets(context);
     }
 
     @Override

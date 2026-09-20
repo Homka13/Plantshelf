@@ -73,11 +73,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Desktop Care AppWidget: exported="true" required for OS AppWidget host broadcasts -->
+        <!-- Desktop Care AppWidget (Scrollable List 4x3): exported="true" required for OS AppWidget host broadcasts -->
         <receiver
             android:name=".widget.PlantCareWidgetProvider"
             android:exported="true"
-            android:label="@string/app_name">
+            android:label="@string/widget_care_list_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.plantshelf.app.widget.ACTION_REFRESH_WIDGET" />
@@ -85,6 +85,48 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/plant_care_widget_info" />
+        </receiver>
+
+        <!-- Garden Status AppWidget (Compact 2x1 / 2x2): exported="true" -->
+        <receiver
+            android:name=".widget.PlantStatusWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_status_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.plantshelf.app.widget.ACTION_REFRESH_STATUS_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/plant_status_widget_info" />
+        </receiver>
+
+        <!-- Quick Water AppWidget (Urgent Plant & 1-tap Water 3x2): exported="true" -->
+        <receiver
+            android:name=".widget.QuickWaterWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_quick_water_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.plantshelf.app.widget.ACTION_REFRESH_QUICK_WIDGET" />
+                <action android:name="com.plantshelf.app.widget.ACTION_QUICK_WATER_NOW" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_water_widget_info" />
+        </receiver>
+
+        <!-- Shortcuts AppWidget (Launcher Bar 4x1): exported="true" -->
+        <receiver
+            android:name=".widget.PlantShortcutsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_shortcuts_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/plant_shortcuts_widget_info" />
         </receiver>
 
         <!-- RemoteViews factory service: internal component, exported="false" -->

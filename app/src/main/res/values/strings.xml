@@ -190,4 +190,14 @@
     <!-- Update Snackbar -->
     <string name="update_snackbar_message">Доступне оновлення %1$s 🌱</string>
     <string name="update_snackbar_action">Оновити</string>
+
+    <!-- Widgets -->
+    <string name="widget_care_list_title">Потребують уваги</string>
+    <string name="widget_status_title">Стан саду</string>
+    <string name="widget_status_desc">Компактний відлік поливу та підживлення</string>
+    <string name="widget_quick_water_title">Терміновий полив</string>
+    <string name="widget_quick_water_desc">Найтерміновіша рослина з швидким поливом в 1 дотик</string>
+    <string name="widget_shortcuts_title">Швидкі дії</string>
+    <string name="widget_shortcuts_desc">Панель швидкого доступу до функцій Plantshelf</string>
+    <string name="widget_watered_toast">Рослину «%1$s» полито! 🌿</string>
 </resources>
