@@ -113,6 +113,10 @@ public class MainViewModel extends AndroidViewModel {
         repository.recordWatering(plantId);
     }
 
+    public void quickFertilize(String plantId) {
+        repository.recordFertilizing(plantId);
+    }
+
     public void quickMist(String plantId) {
         repository.recordMisting(plantId);
     }

@@ -102,6 +102,47 @@ public final class CalculateNextWateringUseCase {
         return interval > 0 ? interval : DEFAULT_WATER_INTERVAL_DAYS;
     }
 
+    /**
+     * Determines whether watering is scheduled or overdue on the given target date.
+     *
+     * <p>Rationale (MIT Comm Lab Style - "Why over What"):
+     * Calendar grids require projecting forward recurring care dates without creating
+     * unbounded database records. When viewing the current date, any overdue items must
+     * appear immediately. For future dates, events recur periodically according to the
+     * seasonal interval.
+     */
+    public boolean isDueOn(
+            @Nullable String lastWateredDateStr,
+            int summerIntervalDays,
+            int winterIntervalDays,
+            @NonNull LocalDate targetDate,
+            boolean isTargetToday
+    ) {
+        boolean isWinter = isWinterMonth(targetDate.getMonthValue());
+        int effectiveInterval = resolveInterval(isWinter, summerIntervalDays, winterIntervalDays);
+
+        if (lastWateredDateStr == null || lastWateredDateStr.trim().isEmpty()) {
+            return isTargetToday;
+        }
+
+        try {
+            LocalDate lastDate = parseIsoDate(lastWateredDateStr);
+            LocalDate firstDueDate = lastDate.plusDays(effectiveInterval);
+
+            if (isTargetToday) {
+                // If checking today, include overdue tasks
+                return !targetDate.isBefore(firstDueDate);
+            } else if (targetDate.isBefore(firstDueDate)) {
+                return false;
+            } else {
+                long daysDiff = ChronoUnit.DAYS.between(firstDueDate, targetDate);
+                return (daysDiff % effectiveInterval) == 0;
+            }
+        } catch (Exception e) {
+            return isTargetToday;
+        }
+    }
+
     private static LocalDate parseIsoDate(String rawDate) {
         String clean = rawDate.trim();
         if (clean.length() > 10) {

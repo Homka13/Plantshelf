@@ -10,6 +10,9 @@
     <string name="empty_plants_desc">Додайте першу рослину або імпортуйте бекап</string>
     <string name="btn_import_backup">Імпортувати бекап</string>
     <string name="btn_add_plant">Додати рослину</string>
+    <string name="title_catalog">Енциклопедія рослин</string>
+    <string name="title_plant_details">Картка рослини</string>
+    <string name="title_add_plant">Додати рослину</string>
 
     <!-- Status & Care badges -->
     <string name="status_overdue">Прострочено на %1$d дн.</string>

@@ -89,4 +89,53 @@ public final class CalculateNextFertilizingUseCase {
             return new CareScheduleResult(0, CareScheduleResult.Status.DUE_TODAY, referenceDate, effectiveInterval, isWinter);
         }
     }
+
+    /**
+     * Projects whether fertilization is scheduled for the given target date.
+     *
+     * <p>Rationale (MIT Comm Lab Style - "Why over What"):
+     * During winter dormancy (if winter interval is 0), fertilization events must never
+     * be scheduled on the calendar to prevent users from harming dormant plants.
+     */
+    public boolean isDueOn(
+            @Nullable String lastFertilizedDateStr,
+            int summerIntervalDays,
+            int winterIntervalDays,
+            @NonNull LocalDate targetDate,
+            boolean isTargetToday
+    ) {
+        boolean isWinter = CalculateNextWateringUseCase.isWinterMonth(targetDate.getMonthValue());
+        int effectiveInterval;
+        if (isWinter) {
+            effectiveInterval = winterIntervalDays > 0 ? winterIntervalDays : 0;
+        } else {
+            effectiveInterval = summerIntervalDays > 0 ? summerIntervalDays : DEFAULT_SUMMER_FERT_INTERVAL_DAYS;
+        }
+
+        if (effectiveInterval == 0 && isWinter) {
+            return false;
+        }
+
+        if (lastFertilizedDateStr == null || lastFertilizedDateStr.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            String clean = lastFertilizedDateStr.trim();
+            if (clean.length() > 10) clean = clean.substring(0, 10);
+            LocalDate lastDate = LocalDate.parse(clean);
+            LocalDate firstDueDate = lastDate.plusDays(effectiveInterval);
+
+            if (isTargetToday) {
+                return !targetDate.isBefore(firstDueDate);
+            } else if (targetDate.isBefore(firstDueDate)) {
+                return false;
+            } else {
+                long daysDiff = ChronoUnit.DAYS.between(firstDueDate, targetDate);
+                return (daysDiff % effectiveInterval) == 0;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

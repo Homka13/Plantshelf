@@ -1,313 +1,62 @@
 package com.plantshelf.app.ui;
 
 import android.os.Bundle;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import com.plantshelf.app.feature.calendar.CareCalendarFragment;
 
-import com.plantshelf.app.R;
-import com.plantshelf.app.data.entity.CategoryEntity;
-import com.plantshelf.app.data.entity.PlantEntity;
-import com.plantshelf.app.data.models.CalendarTask;
-import com.plantshelf.app.data.repository.PlantRepository;
-import com.plantshelf.app.databinding.ActivityCareCalendarBinding;
-import com.plantshelf.app.ui.adapter.CalendarTaskAdapter;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
+/**
+ * Backward-compatibility wrapper for CareCalendar.
+ *
+ * <p>Rationale (MIT Comm Lab Style - "Why over What"):
+ * Retained for backward-compatibility with deep links and widget actions while delegating
+ * all calendar presentation to {@link CareCalendarFragment}.
+ */
 public class CareCalendarActivity extends AppCompatActivity {
-
-    private ActivityCareCalendarBinding binding;
-    private PlantRepository repository;
-    private CalendarTaskAdapter taskAdapter;
-
-    private final List<PlantEntity> allPlants = new ArrayList<>();
-    private final Map<String, CategoryEntity> categoryMap = new HashMap<>();
-    private final Calendar selectedCalendar = Calendar.getInstance();
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-    private final SimpleDateFormat displayFormat = new SimpleDateFormat("d MMMM yyyy", new Locale("uk"));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityCareCalendarBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        setSupportActionBar(binding.toolbarCalendar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (savedInstanceState == null) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(android.R.id.content, new CareCalendarFragment())
+                    .commit();
         }
-
-        repository = new PlantRepository(getApplication());
-
-        setupRecyclerView();
-        setupCalendarView();
-        loadData();
     }
 
-    private void setupRecyclerView() {
-        taskAdapter = new CalendarTaskAdapter(task -> {
-            if ("water".equalsIgnoreCase(task.getTaskType())) {
-                repository.recordWatering(task.getPlantId());
-            } else if ("fert".equalsIgnoreCase(task.getTaskType())) {
-                repository.recordFertilizing(task.getPlantId());
-            } else {
-                repository.recordMisting(task.getPlantId());
-            }
-            Toast.makeText(this, R.string.task_done, Toast.LENGTH_SHORT).show();
-        });
-
-        binding.rvCalendarTasks.setLayoutManager(new LinearLayoutManager(this));
-        binding.rvCalendarTasks.setAdapter(taskAdapter);
-    }
-
-    private void setupCalendarView() {
-        updateDateTitle(selectedCalendar.getTime());
-
-        binding.calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
-            selectedCalendar.set(year, month, dayOfMonth);
-            updateDateTitle(selectedCalendar.getTime());
-            computeTasksForSelectedDate();
-        });
-    }
-
-    private void updateDateTitle(Date date) {
-        binding.tvSelectedDateTitle.setText("Завдання на " + displayFormat.format(date) + ":");
-    }
-
-    private void loadData() {
-        repository.getAllCategories().observe(this, categories -> {
-            categoryMap.clear();
-            if (categories != null) {
-                for (CategoryEntity c : categories) {
-                    categoryMap.put(c.getId(), c);
-                }
-            }
-            computeTasksForSelectedDate();
-        });
-
-        repository.getAllPlants().observe(this, plants -> {
-            allPlants.clear();
-            if (plants != null) {
-                allPlants.addAll(plants);
-            }
-            computeTasksForSelectedDate();
-        });
-    }
-
-    private void computeTasksForSelectedDate() {
-        if (allPlants.isEmpty()) {
-            taskAdapter.setTasks(new ArrayList<>());
-            binding.tvEmptyCalendar.setVisibility(View.VISIBLE);
-            return;
-        }
-
-        String selectedDateStr = dateFormat.format(selectedCalendar.getTime());
-        String todayStr = dateFormat.format(new Date());
-        boolean isSelectedToday = selectedDateStr.equals(todayStr);
-
-        List<CalendarTask> tasks = new ArrayList<>();
-
-        for (PlantEntity plant : allPlants) {
-            CategoryEntity cat = categoryMap.get(plant.getCategoryId());
-            String catName = cat != null ? cat.getName() : "Без кімнати";
-            String catColor = cat != null ? cat.getColor() : "#4E8D7C";
-
-            // Check watering
-            if (isWateringDueOn(plant, selectedDateStr, isSelectedToday)) {
-                tasks.add(new CalendarTask(
-                        plant.getId(),
-                        plant.getName(),
-                        plant.getVariety(),
-                        catName,
-                        catColor,
-                        "water",
-                        selectedDateStr
-                ));
-            }
-
-            // Check fertilizing
-            if (isFertilizingDueOn(plant, selectedDateStr, isSelectedToday)) {
-                tasks.add(new CalendarTask(
-                        plant.getId(),
-                        plant.getName(),
-                        plant.getVariety(),
-                        catName,
-                        catColor,
-                        "fert",
-                        selectedDateStr
-                ));
-            }
-        }
-
-        taskAdapter.setTasks(tasks);
-        binding.tvEmptyCalendar.setVisibility(tasks.isEmpty() ? View.VISIBLE : View.GONE);
-    }
-
-    private boolean isWateringDueOn(PlantEntity plant, String targetDateStr, boolean isTargetToday) {
+    private boolean isWateringDueOn(com.plantshelf.app.data.entity.PlantEntity plant, String targetDateStr, boolean isTargetToday) {
         if (plant.isQuarantined()) return false;
-
-        String lastWatered = plant.getLastWatered();
-        if (lastWatered == null || lastWatered.trim().isEmpty()) {
-            // Never watered -> due today
-            return isTargetToday;
-        }
-
         try {
-            String dateStr = lastWatered.trim();
-            if (dateStr.length() > 10) dateStr = dateStr.substring(0, 10);
-            LocalDate lastDate = LocalDate.parse(dateStr);
-            LocalDate targetDate = LocalDate.parse(targetDateStr);
-
-            int month = targetDate.getMonthValue();
-            boolean isWinter = (month == 12 || month == 1 || month == 2);
-            int interval = isWinter ? plant.getIntervalDaysWinter() : plant.getIntervalDays();
-            if (interval <= 0) interval = 7;
-
-            LocalDate firstDueDate = lastDate.plusDays(interval);
-
-            if (isTargetToday) {
-                // If checking today, include overdue tasks
-                return !targetDate.isBefore(firstDueDate);
-            } else if (targetDate.isBefore(firstDueDate)) {
-                return false;
-            } else {
-                long daysDiff = ChronoUnit.DAYS.between(firstDueDate, targetDate);
-                return (daysDiff % interval) == 0;
-            }
+            java.time.LocalDate targetDate = java.time.LocalDate.parse(targetDateStr);
+            com.plantshelf.app.domain.usecase.CalculateNextWateringUseCase useCase =
+                    new com.plantshelf.app.domain.usecase.CalculateNextWateringUseCase();
+            return useCase.isDueOn(
+                    plant.getLastWatered(),
+                    plant.getIntervalDays(),
+                    plant.getIntervalDaysWinter(),
+                    targetDate,
+                    isTargetToday
+            );
         } catch (Exception e) {
             return false;
         }
     }
 
-    private boolean isFertilizingDueOn(PlantEntity plant, String targetDateStr, boolean isTargetToday) {
+    private boolean isFertilizingDueOn(com.plantshelf.app.data.entity.PlantEntity plant, String targetDateStr, boolean isTargetToday) {
         if (plant.isQuarantined()) return false;
-        int fertInterval = plant.getFertIntervalDays();
-        if (fertInterval <= 0) return false;
-
-        String lastFert = plant.getLastFert();
-        if (lastFert == null || lastFert.trim().isEmpty()) return false;
-
         try {
-            String dateStr = lastFert.trim();
-            if (dateStr.length() > 10) dateStr = dateStr.substring(0, 10);
-            LocalDate lastDate = LocalDate.parse(dateStr);
-            LocalDate targetDate = LocalDate.parse(targetDateStr);
-
-            LocalDate firstDueDate = lastDate.plusDays(fertInterval);
-
-            if (isTargetToday) {
-                return !targetDate.isBefore(firstDueDate);
-            } else if (targetDate.isBefore(firstDueDate)) {
-                return false;
-            } else {
-                long daysDiff = ChronoUnit.DAYS.between(firstDueDate, targetDate);
-                return (daysDiff % fertInterval) == 0;
-            }
+            java.time.LocalDate targetDate = java.time.LocalDate.parse(targetDateStr);
+            com.plantshelf.app.domain.usecase.CalculateNextFertilizingUseCase useCase =
+                    new com.plantshelf.app.domain.usecase.CalculateNextFertilizingUseCase();
+            return useCase.isDueOn(
+                    plant.getLastFert(),
+                    plant.getEffectiveFertilizeIntervalSummerDays(),
+                    plant.getFertilizeIntervalWinterDays(),
+                    targetDate,
+                    isTargetToday
+            );
         } catch (Exception e) {
             return false;
-        }
-    }
-
-    private final androidx.activity.result.ActivityResultLauncher<String> calendarPermissionLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (Boolean.TRUE.equals(isGranted)) {
-                    startBatchCalendarSync();
-                } else {
-                    Toast.makeText(this, "Потрібен дозвіл для запису в системний календар", Toast.LENGTH_LONG).show();
-                }
-            });
-
-    @Override
-    public boolean onCreateOptionsMenu(android.view.Menu menu) {
-        getMenuInflater().inflate(R.menu.calendar_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        } else if (item.getItemId() == R.id.action_sync_all_calendar) {
-            checkAndStartBatchSync();
-            return true;
-        } else if (item.getItemId() == R.id.action_export_calendar) {
-            exportAllToIcs();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    private void checkAndStartBatchSync() {
-        if (allPlants.isEmpty()) {
-            Toast.makeText(this, R.string.no_plants_to_export, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(this).hasCalendarPermission()) {
-            startBatchCalendarSync();
-        } else {
-            calendarPermissionLauncher.launch(android.Manifest.permission.WRITE_CALENDAR);
-        }
-    }
-
-    private void startBatchCalendarSync() {
-        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
-        progressDialog.setTitle("Синхронізація з календарем");
-        progressDialog.setMessage("Синхронізація розкладу рослин...");
-        progressDialog.setProgressStyle(android.app.ProgressDialog.STYLE_SPINNER);
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-
-        com.plantshelf.app.data.calendar.CalendarSyncManager.getInstance(this).syncAllPlants(allPlants, new com.plantshelf.app.data.calendar.CalendarSyncManager.SyncCallback() {
-            @Override
-            public void onProgress(int current, int total) {
-            }
-
-            @Override
-            public void onSuccess(int syncedCount) {
-                if (!isFinishing()) {
-                    progressDialog.dismiss();
-                    com.google.android.material.snackbar.Snackbar.make(binding.getRoot(),
-                            "✅ Успішно синхронізовано " + syncedCount + " рослин із системним календарем!",
-                            com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            public void onError(String message) {
-                if (!isFinishing()) {
-                    progressDialog.dismiss();
-                    Toast.makeText(CareCalendarActivity.this, message, Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-    }
-
-    private void exportAllToIcs() {
-        if (allPlants == null || allPlants.isEmpty()) {
-            Toast.makeText(this, R.string.no_plants_to_export, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        try {
-            com.plantshelf.app.data.calendar.CalendarIntegrationHelper.exportAndShareIcs(this, allPlants);
-        } catch (Exception e) {
-            Toast.makeText(this, "Помилка експорту: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 }

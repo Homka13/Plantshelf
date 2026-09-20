@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.plantshelf.app.feature.home.HomeFragment"
+        android:label="@string/app_name">
+        <action
+            android:id="@+id/action_homeFragment_to_catalogFragment"
+            app:destination="@id/catalogFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_calendarFragment"
+            app:destination="@id/calendarFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_lightMeterFragment"
+            app:destination="@id/lightMeterFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_plantDetailFragment"
+            app:destination="@id/plantDetailFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_addEditPlantFragment"
+            app:destination="@id/addEditPlantFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/catalogFragment"
+        android:name="com.plantshelf.app.feature.catalog.PlantCatalogFragment"
+        android:label="@string/title_catalog" />
+
+    <fragment
+        android:id="@+id/calendarFragment"
+        android:name="com.plantshelf.app.feature.calendar.CareCalendarFragment"
+        android:label="@string/title_calendar" />
+
+    <fragment
+        android:id="@+id/lightMeterFragment"
+        android:name="com.plantshelf.app.feature.lightmeter.LightMeterFragment"
+        android:label="@string/title_light_meter" />
+
+    <fragment
+        android:id="@+id/plantDetailFragment"
+        android:name="com.plantshelf.app.feature.detail.PlantDetailFragment"
+        android:label="@string/title_plant_details">
+        <argument
+            android:name="plantId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_plantDetailFragment_to_addEditPlantFragment"
+            app:destination="@id/addEditPlantFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addEditPlantFragment"
+        android:name="com.plantshelf.app.feature.addedit.AddEditPlantFragment"
+        android:label="@string/title_add_plant">
+        <argument
+            android:name="plantId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+    </fragment>
+
+</navigation>

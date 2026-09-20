@@ -454,6 +454,18 @@ public class PlantEntity {
         return useCase.execute(lastWatered, intervalDays, intervalDaysWinter).getDaysRemaining();
     }
 
+    /**
+     * Calculates days until next fertilizing based on current season.
+     * Delegates domain business logic to CalculateNextFertilizingUseCase.
+     *
+     * @return Positive number (days remaining), 0 (needs fertilizer today), negative (overdue)
+     */
+    public int getDaysUntilFertilizing() {
+        com.plantshelf.app.domain.usecase.CalculateNextFertilizingUseCase useCase =
+                new com.plantshelf.app.domain.usecase.CalculateNextFertilizingUseCase();
+        return useCase.execute(lastFert, getEffectiveFertilizeIntervalSummerDays(), fertilizeIntervalWinterDays).getDaysRemaining();
+    }
+
     public boolean isQuarantined() {
         return quarantineUntil != null && !quarantineUntil.isEmpty();
     }
