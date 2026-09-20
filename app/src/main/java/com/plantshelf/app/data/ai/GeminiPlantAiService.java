@@ -29,8 +29,19 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Pure Java service communicating directly with Google Gemini Flash / Pro API
- * to identify houseplants by photo or name, and extract structured care requirements.
+ * Service communicating directly with Google Gemini Multimodal APIs.
+ *
+ * <p>Rationale (MIT Comm Lab Style - "Why over What"):
+ * Direct HTTP/REST client implementation over heavy client SDKs offers zero external binary dependencies,
+ * deterministic timeout budgets, and granular retry handling for mobile network transitions.
+ *
+ * <p>Key Architecture Principles:
+ * 1. Security (BYOK): Secret keys are resolved strictly through {@link com.plantshelf.app.domain.security.SecurePreferencesManager}
+ *    (AES-256 GCM backed by Android Keystore), never stored in plaintext preferences or exported in backups.
+ * 2. Network Resilience: Implements exponential backoff retry on transient HTTP 429 (quota rate-limiting)
+ *    and HTTP 503 (temporary model overload), handling fluctuating cellular signal gracefully.
+ * 3. Vision & Schema Validation: Encodes plant imagery to constrained JPEG payloads, enforcing
+ *    strict JSON response formatting through response_mime_type schemas.
  */
 public class GeminiPlantAiService {
 

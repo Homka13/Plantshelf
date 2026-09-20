@@ -1,6 +1,5 @@
 package com.plantshelf.app.updater;
 
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -8,12 +7,16 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.snackbar.Snackbar;
 import com.plantshelf.app.R;
 
@@ -29,6 +32,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -295,16 +299,34 @@ public class GitHubUpdateManager {
         builder.show();
     }
 
-    @SuppressWarnings("deprecation")
     private static void downloadAndInstallApk(Context context, String apkUrl, String tagName) {
-        ProgressDialog progressDialog = new ProgressDialog(context);
-        progressDialog.setTitle(context.getString(R.string.update_downloading));
-        progressDialog.setMessage("Завантаження APK з GitHub...");
-        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        progressDialog.setIndeterminate(false);
-        progressDialog.setMax(100);
-        progressDialog.setCancelable(false);
-        progressDialog.show();
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(context);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (20 * context.getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad, pad, pad);
+
+        TextView tvMsg = new TextView(context);
+        tvMsg.setText("Завантаження APK з GitHub...");
+        tvMsg.setTextSize(14f);
+        layout.addView(tvMsg);
+
+        LinearProgressIndicator progressIndicator = new LinearProgressIndicator(context);
+        progressIndicator.setIndeterminate(false);
+        progressIndicator.setMax(100);
+        progressIndicator.setProgress(0);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        lp.topMargin = (int) (12 * context.getResources().getDisplayMetrics().density);
+        progressIndicator.setLayoutParams(lp);
+        layout.addView(progressIndicator);
+
+        AlertDialog progressDialog = new MaterialAlertDialogBuilder(context)
+                .setTitle(context.getString(R.string.update_downloading))
+                .setView(layout)
+                .setCancelable(false)
+                .show();
 
         executor.execute(() -> {
             HttpURLConnection conn = null;
@@ -313,7 +335,7 @@ public class GitHubUpdateManager {
                 int fileLength = conn.getContentLength();
 
                 File apkFile = prepareApkFile(context, tagName);
-                writeApkFromStream(conn.getInputStream(), apkFile, fileLength, progressDialog);
+                writeApkFromStream(conn.getInputStream(), apkFile, fileLength, progressIndicator, tvMsg);
 
                 getMainHandler().post(() -> {
                     progressDialog.dismiss();
@@ -369,7 +391,8 @@ public class GitHubUpdateManager {
 
     /** Streams download bytes to {@code dest}, posting progress updates to the dialog. */
     private static void writeApkFromStream(InputStream input, File dest, int fileLength,
-                                           ProgressDialog progressDialog) throws Exception {
+                                           LinearProgressIndicator progressIndicator,
+                                           TextView statusText) throws Exception {
         try (FileOutputStream output = new FileOutputStream(dest)) {
             byte[] data  = new byte[8192];
             long   total = 0;
@@ -378,7 +401,16 @@ public class GitHubUpdateManager {
                 total += count;
                 if (fileLength > 0) {
                     int progress = (int) (total * 100 / fileLength);
-                    getMainHandler().post(() -> progressDialog.setProgress(progress));
+                    long downloadedMb = total / (1024 * 1024);
+                    long totalMb = fileLength / (1024 * 1024);
+                    getMainHandler().post(() -> {
+                        progressIndicator.setProgressCompat(progress, true);
+                        if (totalMb > 0) {
+                            statusText.setText(String.format(Locale.getDefault(), "Завантаження: %d%% (%d / %d MB)", progress, downloadedMb, totalMb));
+                        } else {
+                            statusText.setText(String.format(Locale.getDefault(), "Завантаження: %d%%", progress));
+                        }
+                    });
                 }
                 output.write(data, 0, count);
             }

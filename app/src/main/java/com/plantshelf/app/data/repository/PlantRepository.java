@@ -24,6 +24,15 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Single source of truth for plant entities, care records, and taxonomy persistence.
+ *
+ * <p>Rationale (MIT Comm Lab Style - "Why over What"):
+ * Acts as an abstraction barrier isolating ViewModels and Domain Use Cases from Room DAO details.
+ * Manages background database writes through a dedicated bounded thread pool ({@link ExecutorService}),
+ * preventing disk I/O on the Android Main (UI) thread while guaranteeing FIFO execution of care logging
+ * and widget broadcast notifications.
+ */
 public class PlantRepository {
 
     private final Context context;
@@ -217,5 +226,9 @@ public class PlantRepository {
 
     public LiveData<List<PhotoEntity>> getPhotosForPlant(String plantId) {
         return photoDao.getPhotosForPlant(plantId);
+    }
+
+    public void insertPhoto(PhotoEntity photo) {
+        executor.execute(() -> photoDao.insert(photo));
     }
 }

@@ -32,6 +32,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Feature: Plant Botanical Catalog Fragment.
@@ -47,6 +49,7 @@ public class PlantCatalogFragment extends Fragment {
     private String currentCategory = "Всі";
     private String currentQuery = "";
     private List<CategoryEntity> userCategories = new ArrayList<>();
+    private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
 
     @Nullable
     @Override
@@ -187,7 +190,7 @@ public class PlantCatalogFragment extends Fragment {
     }
 
     private void addPlantToShelf(CatalogPlant catalogPlant, String categoryId) {
-        new Thread(() -> {
+        backgroundExecutor.execute(() -> {
             String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             String plantId = UUID.randomUUID().toString();
 
@@ -217,7 +220,7 @@ public class PlantCatalogFragment extends Fragment {
                     }
                 });
             }
-        }).start();
+        });
     }
 
     private void showPlantInfoDialog(CatalogPlant plant) {

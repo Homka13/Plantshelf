@@ -42,6 +42,8 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Feature: Home Dashboard & Shelves Fragment.
@@ -56,6 +58,7 @@ public class HomeFragment extends Fragment {
     private MainViewModel viewModel;
     private ShelfAdapter shelfAdapter;
     private PlantAdapter plantAdapter;
+    private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
 
     private final ActivityResultLauncher<Intent> filePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -416,7 +419,7 @@ public class HomeFragment extends Fragment {
     private void writeExportToUri(Uri uri) {
         Toast.makeText(requireContext(), "Експорт резервної копії...", Toast.LENGTH_SHORT).show();
 
-        new Thread(() -> {
+        backgroundExecutor.execute(() -> {
             try {
                 OutputStream os = requireContext().getContentResolver().openOutputStream(uri);
                 if (os == null) {
@@ -453,7 +456,7 @@ public class HomeFragment extends Fragment {
                     getActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Помилка запису: " + e.getMessage(), Toast.LENGTH_SHORT).show());
                 }
             }
-        }).start();
+        });
     }
 
     @Override

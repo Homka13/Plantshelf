@@ -481,7 +481,13 @@ public class AddEditPlantFragment extends Fragment {
     private void addPhotoRecord(String plantId, String date, String path) {
         String photoId = UUID.randomUUID().toString().substring(0, 8);
         PhotoEntity photo = new PhotoEntity(photoId, plantId, date, path);
-        new Thread(() -> PlantshelfDatabase.getInstance(requireContext()).photoDao().insert(photo)).start();
+        if (repository != null) {
+            repository.insertPhoto(photo);
+        } else {
+            com.plantshelf.app.data.repository.PlantRepository repo =
+                    new com.plantshelf.app.data.repository.PlantRepository(requireActivity().getApplication());
+            repo.insertPhoto(photo);
+        }
     }
 
     private String getText(android.widget.EditText et) {

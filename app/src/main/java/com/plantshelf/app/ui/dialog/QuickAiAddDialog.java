@@ -1,6 +1,5 @@
 package com.plantshelf.app.ui.dialog;
 
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,8 +27,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class QuickAiAddDialog {
+
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public interface OnPlantAddedCallback {
         void onPlantAdded();
@@ -57,7 +60,7 @@ public class QuickAiAddDialog {
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, catNames);
         spinner.setAdapter(spinnerAdapter);
 
-        new Thread(() -> {
+        executor.execute(() -> {
             List<CategoryEntity> dbCats = PlantshelfDatabase.getInstance(context).categoryDao().getAllCategoriesSync();
             if (dbCats != null && !dbCats.isEmpty()) {
                 if (context instanceof android.app.Activity) {
@@ -70,7 +73,7 @@ public class QuickAiAddDialog {
                     });
                 }
             }
-        }).start();
+        });
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle("🤖 Швидке додавання з Gemini")
@@ -103,7 +106,7 @@ public class QuickAiAddDialog {
         GeminiPlantAiService.generatePlantByName(context, plantName, new GeminiPlantAiService.AiAnalysisCallback() {
             @Override
             public void onSuccess(AiPlantAnalysisResult result) {
-                new Thread(() -> {
+                executor.execute(() -> {
                     String plantId = UUID.randomUUID().toString().substring(0, 8);
                     PlantEntity plant = new PlantEntity(plantId);
 
@@ -138,7 +141,7 @@ public class QuickAiAddDialog {
                             if (callback != null) callback.onPlantAdded();
                         });
                     }
-                }).start();
+                });
             }
 
             @Override
@@ -181,7 +184,7 @@ public class QuickAiAddDialog {
             String categoryId,
             OnPlantAddedCallback callback
     ) {
-        new Thread(() -> {
+        executor.execute(() -> {
             String plantId = UUID.randomUUID().toString().substring(0, 8);
             PlantEntity entity = new PlantEntity(plantId);
             entity.setName(plant.getName());
@@ -212,6 +215,6 @@ public class QuickAiAddDialog {
                     if (callback != null) callback.onPlantAdded();
                 });
             }
-        }).start();
+        });
     }
 }
